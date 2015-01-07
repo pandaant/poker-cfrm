@@ -23,6 +23,7 @@ protected:
   ActionAbstraction *action_abs;
 
 public:
+  std::vector<uint64_t> public_tree_cache;
   AbstractGame(const Game *game_definition, CardAbstraction *card_abs,
                ActionAbstraction *action_abs);
 
@@ -75,13 +76,12 @@ public:
   CardAbstraction *card_abstraction() { return card_abs; }
   ActionAbstraction *action_abstraction() { return action_abs; }
 
-  std::vector<card_c> generate_combinations(int N, int K, card_c deadcards);
   // checks if to integer collections overlap
   bool do_intersect(card_c v1, card_c v2);
   unsigned find_index(card_c v1, vector<card_c> v2);
   INode *init_game_tree(Action action, State &state, const Game *game,
                         uint64_t &idx);
-  INode *init_public_tree(Action action, State &state, hand_list hand,
+  INode *init_public_tree(Action action, State &state, uint64_t hand,
                           card_c board, card_c deck, const Game *game,
                           uint64_t &idx, bool deal_holes = false,
                           bool deal_board = false);

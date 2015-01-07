@@ -30,7 +30,8 @@ class InformationSetNode : public INode {
 
 public:
   std::vector<INode *> children;
-  hand_list hands;
+  //hand_list hands;
+  uint64_t hand_idx;
   card_c board;
 
   InformationSetNode(uint64_t idx, Action action, unsigned player,
@@ -40,9 +41,9 @@ public:
 
   InformationSetNode(uint64_t idx, Action action, unsigned player,
                      unsigned round, std::vector<INode *> children,
-                     hand_list hands, card_c board)
+                     uint64_t hand_idx, card_c board)
       : idx(idx), action(action), player(player), round(round),
-        children(children), hands(hands), board(board) {}
+        children(children), hand_idx(hand_idx), board(board) {}
 
   virtual Action get_action() { return action; }
 
@@ -73,15 +74,15 @@ class ShowdownNode : public INode {
   Action action;
 
 public:
+  uint64_t hand_idx;
   double value;
-  hand_list holdings;
   card_c board;
   vector<vector<double>> payoffs;
 
   ShowdownNode(Action action, double value) : action(action), value(value) {}
-  ShowdownNode(Action action, double value, hand_list hands, card_c board,
+  ShowdownNode(Action action, double value, uint64_t hand_idx, card_c board,
                vector<vector<double>> payoffs)
-      : action(action), value(value), holdings(hands), board(board),
+      : action(action), value(value), hand_idx(hand_idx), board(board),
         payoffs(payoffs) {}
 
   virtual unsigned get_player() { return -1; }
@@ -98,18 +99,18 @@ class FoldNode : public INode {
 
 public:
   Action action;
-  hand_list holdings;
   card_c board;
   vector<vector<double>> payoffs;
   unsigned fold_player;
   double value;
+  uint64_t hand_idx;
 
   FoldNode(Action action, unsigned fold_player, double value)
       : action(action), fold_player(fold_player), value(value) {}
 
-  FoldNode(Action action, unsigned fold_player, double value, hand_list hands,
+  FoldNode(Action action, unsigned fold_player, double value, uint64_t hand_idx,
            card_c board, vector<vector<double>> payoffs)
-      : action(action), fold_player(fold_player), value(value), holdings(hands),
+      : action(action), fold_player(fold_player), value(value), hand_idx(hand_idx),
         board(board), payoffs(payoffs) {}
 
   virtual unsigned get_player() { return fold_player; }
@@ -127,12 +128,12 @@ public:
   unsigned to_deal;
   int round;
   card_c board;
-  hand_list hands;
+  uint64_t hand_idx;
   std::vector<INode *> children;
 
-  PublicChanceNode(unsigned to_deal, hand_list hands, card_c board,
+  PublicChanceNode(unsigned to_deal, uint64_t hand_idx, card_c board,
                    const Game *game, State &state)
-      : to_deal(to_deal), hands(hands), board(board) {}
+      : to_deal(to_deal), hand_idx(hand_idx), board(board) {}
 
   virtual unsigned get_player() {
     throw std::runtime_error("can not get player in chance nodes");
@@ -151,11 +152,12 @@ public:
 class PrivateChanceNode : public INode {
 public:
   unsigned to_deal;
+  uint64_t hand_idx;
   INode *child;
 
-  PrivateChanceNode(unsigned to_deal, hand_list hands, card_c board,
+  PrivateChanceNode(unsigned to_deal, uint64_t hand_idx, card_c board,
                     const Game *game, State &state)
-      : to_deal(to_deal) {}
+      : to_deal(to_deal), hand_idx(hand_idx) {}
 
   PrivateChanceNode(unsigned to_deal, INode *child)
       : to_deal(to_deal), child(child) {}

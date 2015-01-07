@@ -7,7 +7,6 @@
 #include <ecalc/xorshift_generator.hpp>
 
 #include "entry.hpp"
-#include "functions.hpp"
 
 extern "C" {
 #include "game.h"
@@ -65,5 +64,6 @@ struct hand_t {
     return *this;
   }
 };
+
 
 #endif

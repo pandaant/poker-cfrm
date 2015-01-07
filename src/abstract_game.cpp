@@ -1,6 +1,8 @@
 #include "abstract_game.hpp"
+#include <algorithm>
 #include <ecalc/types.hpp>
 #include <ecalc/ecalc.hpp>
+#include "functions.hpp"
 
 AbstractGame::AbstractGame(const Game *game_definition,
                            CardAbstraction *card_abs,
@@ -19,33 +21,6 @@ AbstractGame::AbstractGame(const Game *game_definition,
 
 AbstractGame::~AbstractGame() {}
 
-std::vector<card_c>
-AbstractGame::generate_combinations(int N, int K, card_c deadcards) {
-  vector<card_c> combos;
-  std::bitset<52> dead(0);
-  for (unsigned i = 0; i < deadcards.size(); ++i) {
-    dead.set(deadcards[i], 1);
-  }
-  std::string bitmask(K, 1); // K leading 1's
-  bitmask.resize(N, 0);      // N-K trailing 0's
-
-  do {
-    card_c curr;
-    for (int i = 0; i < N; ++i) // [0..N-1] integers
-    {
-
-      if (bitmask[i]) {
-        if (dead[i]) {
-          break;
-        }
-        curr.push_back(i);
-      }
-    }
-    if (curr.size() == K)
-      combos.push_back(curr);
-  } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
-  return combos;
-}
 
 INode *AbstractGame::init_game_tree(Action action, State &state,
                                     const Game *game, uint64_t &idx) {
@@ -96,13 +71,13 @@ unsigned AbstractGame::find_index(card_c v1, vector<card_c> v2) {
 }
 
 INode *AbstractGame::init_public_tree(Action action, State &state,
-                                      hand_list hands, card_c board, card_c deck,
+                                      uint64_t hands_idx, card_c board, card_c deck,
                                       const Game *game, uint64_t &idx,
                                       bool deal_holes, bool deal_board) {
   // root of tree, deal holes
   if (deal_holes) {
     PrivateChanceNode *c =
-        new PrivateChanceNode(game->numHoleCards, hands, board, game, state);
+        new PrivateChanceNode(game->numHoleCards, hands_idx, board, game, state);
 
     // generate possible holecombinations
     std::vector<card_c> combinations =
@@ -119,14 +94,29 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
       }
       new_hands[c] = combo;
     }
+
+    ++idx;
+    //std::cout << "i am a private chance node and increment index from " << idx-1 << " to " << idx << "\n";
+    if( public_tree_cache.size() - 1 < idx )
+        public_tree_cache.resize(public_tree_cache.size() + 100);
+    public_tree_cache[idx] = deck_to_bitset(deck);
+    //std::cout << "idx("<<idx<<") = " << public_tree_cache[idx] << "\n";
+    card_c dec = bitset_to_deck(public_tree_cache[idx],52);
+//hand_list bv = deck_to_combinations(,dec);
+//for(unsigned i = 0; i < bv.size(); ++i)
+    //std::cout << int(bv[i][0]) << "\n";
+
+    //exit(1);
+
+
     c->child =
-        init_public_tree(action, state, new_hands, board, deck, game, idx);
+        init_public_tree(action, state, idx, board, deck, game, idx);
     return c;
   }
 
   if (deal_board) {
     PublicChanceNode *c = new PublicChanceNode(game->numBoardCards[state.round],
-                                               hands, board, game, state);
+                                               hands_idx, board, game, state);
 
     // generate possible boards
     hand_list combinations = generate_combinations(
@@ -146,13 +136,22 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
       // combinations[i].end());
 
       // filter players hands based on board
+      card_c deck = bitset_to_deck(public_tree_cache[hands_idx],52);
       hand_list new_holes;
+      hand_list hands = deck_to_combinations(game->numHoleCards,deck);
       for (unsigned j = 0; j < hands.size(); ++j) {
         if (!do_intersect(newboard, hands[j]))
           new_holes.push_back(hands[j]);
       }
 
-      c->children.push_back(init_public_tree(action, state, new_holes, newboard,
+      ++idx;
+      //std::cout << "i am a public chance node and increment index from " << idx-1 << " to " << idx << "\n";
+      if (public_tree_cache.size() - 1 < idx)
+        public_tree_cache.resize(public_tree_cache.size() + 100);
+      public_tree_cache[idx] = deck_to_bitset(newdeck);
+    std::cout << "idx("<<idx<<") = " << public_tree_cache[idx] << "\n";
+
+      c->children.push_back(init_public_tree(action, state, idx, newboard,
                                              newdeck, game, idx));
     }
     return c;
@@ -166,7 +165,9 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
 
     // get all valid matchups
     //vector<vector<vector<int>>> possible_matchups;
-    auto ph = hands;
+    card_c deck = bitset_to_deck(public_tree_cache[hands_idx], 52);
+    auto ph =deck_to_combinations(game->numHoleCards, deck); 
+
     for (unsigned i = 0; i < ph.size(); ++i) {
       for (unsigned j = 0; j < ph.size(); ++j) {
         if (i == j || do_intersect(ph[i], ph[j]))
@@ -196,32 +197,42 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
     }
     if (!(state.playerFolded[0] || state.playerFolded[1])) {
       // std::cout << money << std::endl;
-      return new ShowdownNode(action, money, hands, board, payoffs);
+      return new ShowdownNode(action, money, hands_idx, board, payoffs);
     } else {
       // std::cout << money_f << std::endl;
-      return new FoldNode(action, fold_player, money_f, hands, board, payoffs);
+      return new FoldNode(action, fold_player, money_f, hands_idx, board, payoffs);
     }
   }
 
-  std::vector<Action> actions = action_abs->get_actions(game, state);
-  std::vector<INode *> children(actions.size());
-  int curr_round = state.round;
 
   const State *s = &state;
   InformationSetNode *game_node = (InformationSetNode *)lookup_state(
       s, currentPlayer(game, s), game_tree_root(), 0, 0);
   uint64_t info_idx = game_node->get_idx();
+  std::vector<Action> actions = action_abs->get_actions(game, state);
+  std::vector<INode *> children(actions.size());
+  InformationSetNode* n= new InformationSetNode(info_idx, action, currentPlayer(game, &state),
+                                state.round, {}, hands_idx, board);
+  int curr_round = state.round;
 
   for (int c = 0; c < actions.size(); ++c) {
     State new_state(state);
     doAction(game, &actions[c], &new_state);
     int new_round = new_state.round;
     children[c] =
-        init_public_tree(actions[c], new_state, hands, board, deck, game,
-                         info_idx, false, curr_round < new_round);
+        init_public_tree(actions[c], new_state, hands_idx, board, deck, game,
+                         idx, false, curr_round < new_round);
   }
-  return new InformationSetNode(info_idx, action, currentPlayer(game, &state),
-                                state.round, children, hands, board);
+  
+  n->children = children;
+
+  //if (public_tree_cache.size() - 1 < idx)
+    //public_tree_cache.resize(public_tree_cache.size() + 100);
+  //public_tree_cache[idx] = new_hands;
+  //++idx;
+
+//std::cout << "i am a infoset for player " << int(currentPlayer(game,&state)) << " in round " << int(state.round) << " with index " << idx << " and hand_idx: " << hands_idx << "\n";
+return n;
 }
 
 card_c AbstractGame::generate_deck(int ranks, int suits) {
@@ -258,12 +269,13 @@ INode *AbstractGame::game_tree_root() { return game_tree; }
 INode *AbstractGame::public_tree_root() {
   if (!public_tree) {
     uint64_t idi = 0;
+    public_tree_cache = std::vector<uint64_t>(100);// better estimate initial value
     card_c deck = generate_deck(game->numRanks, game->numSuits);
     State initial_state;
     initState(game, 0, &initial_state);
-    public_tree = init_public_tree({a_invalid, 0}, initial_state, hand_list(),
+    public_tree = init_public_tree({a_invalid, 0}, initial_state, idi,
                                    {}, deck, game, idi, true);
-    // std::cout << "done\n";
+     std::cout << idi << "\n";
   }
   return public_tree;
 }

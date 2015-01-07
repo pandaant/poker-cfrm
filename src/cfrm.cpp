@@ -1,4 +1,5 @@
 #include "cfrm.hpp"
+#include "functions.hpp"
 
 CFRM::CFRM(AbstractGame *game, char *strat_dump_file) : game(game) {
   std::ifstream file(strat_dump_file, std::ios::in | std::ios::binary);
@@ -193,23 +194,28 @@ std::vector<vector<double>> CFRM::br_public_chance(INode *curr_node,
                                                    std::string path) {
   const Game *def = game->get_gamedef();
   PublicChanceNode *p = (PublicChanceNode *)curr_node;
-  int nb_dead = p->board.size() + p->hands[0].size();
+  int nb_dead = p->board.size() + def->numHoleCards;
   unsigned possible_deals =
       choose((def->numRanks * def->numSuits) - nb_dead, p->to_deal);
 
   vector<vector<double>> payoffs(op.size(), vector<double>(op[0].size(), 0));
-  hand_list curr_holdings = p->hands;
+    card_c deck = bitset_to_deck(game->public_tree_cache[p->hand_idx], 52);
+  hand_list curr_holdings = deck_to_combinations(def->numHoleCards, deck);
+  //std::cout << "old: " << curr_holdings.size() << "\n";
 
   for (unsigned child = 0; child < p->children.size(); ++child) {
     InformationSetNode *n = (InformationSetNode *)p->children[child];
-    hand_list new_holdings = n->hands;
+    //hand_list new_holdings = game->public_tree_cache[n->hand_idx];
+    card_c deck = bitset_to_deck(game->public_tree_cache[n->hand_idx], 52);
+    hand_list new_holdings = deck_to_combinations(def->numHoleCards, deck);
+  //std::cout << "new: " << new_holdings.size() << "\n";
 
     std::string newpath = path;
     newpath = path + ActionsStr[n->get_action().type] + "/";
 
     vector<vector<double>> newop(op.size());
     for (unsigned i = 0; i < op.size(); ++i) {
-      newop[i] = vector<double>(n->hands.size());
+      newop[i] = vector<double>(new_holdings.size());
       for (unsigned j = 0; j < newop[i].size(); ++j) {
         unsigned idx_hand = game->find_index(new_holdings[j], curr_holdings);
         newop[i][j] = op[i][idx_hand] / possible_deals;
@@ -240,6 +246,7 @@ std::vector<vector<double>> CFRM::br_private_chance(INode *curr_node,
   for (unsigned i = 0; i < op.size(); ++i) {
     newop[i] = vector<double>(possible_deals, op[i][0] / possible_deals);
   }
+  //std::cout << "pn:" << p->hand_idx<< "\n";
 
   vector<vector<double>> subpayoffs = best_response(p->child, newop, path);
   vector<vector<double>> payoffs(op.size(), vector<double>(op[0].size(), 0));
@@ -263,7 +270,8 @@ std::vector<vector<double>> CFRM::br_terminal(INode *curr_node,
   if (curr_node->is_fold()) {
     FoldNode *node = (FoldNode *)curr_node;
     vector<vector<vector<int>>> possible_matchups;
-    auto ph = node->holdings;
+    card_c deck = bitset_to_deck(game->public_tree_cache[node->hand_idx], 52);
+  auto ph = deck_to_combinations(game->get_gamedef()->numHoleCards, deck);
     auto board = node->board;
 
     //for (unsigned player = 0; player < op.size(); ++player) {
@@ -317,7 +325,14 @@ std::vector<vector<double>> CFRM::br_terminal(INode *curr_node,
   ShowdownNode *node = (ShowdownNode *)curr_node;
 
   vector<vector<vector<int>>> possible_matchups;
-  auto ph = node->holdings;
+  // auto ph = game->public_tree_cache[node->hand_idx];
+  card_c deck = bitset_to_deck(game->public_tree_cache[node->hand_idx],52);
+  //std::cout << "cache: " << game->public_tree_cache[node->hand_idx] << "\n";
+  //std::cout << "deck: " << deck.size() << "\n";
+  //std::cout << game->get_gamedef()->numRanks * game->get_gamedef()->numSuits << "\n";
+  //std::cout << deck.size() << "\n";
+  auto ph = deck_to_combinations(game->get_gamedef()->numHoleCards, deck);
+  //std::cout << ph.size() << "\n";
   //for (unsigned player = 0; player < op.size(); ++player) {
     unsigned payoff_idx = 0;
     //vector<double> player_payoffs(op[player].size());
@@ -375,9 +390,17 @@ std::vector<vector<double>> CFRM::br_infoset(INode *curr_node,
   int nb_buckets = game->card_abstraction()->get_nb_buckets(game->get_gamedef(),
                                                             node->get_round());
 
-  vector<vector<double>> probabilities(node->hands.size());
+  card_c deck = bitset_to_deck(game->public_tree_cache[node->hand_idx], 52);//todo variable
+  hand_list combos = deck_to_combinations(game->get_gamedef()->numHoleCards, deck);
+  vector<vector<double>> probabilities(combos.size());
+  //std::cout << "info_idx:"<< info_idx << "\n";
+  //std::cout << "idx:"<< node->hand_idx << "\n";
+  //std::cout << "round:"<< node->get_round() << "\n";
+  //std::cout << "path:"<< path << "\n";
+  //std::cout << "prob:"<< probabilities.size() << "\n";
+  //std::cout << "op:"<< op[0].size() << "\n";
   for (unsigned i = 0; i < op[0].size(); ++i) {
-    auto hand = node->hands[i];
+    auto hand = combos[i];
     probabilities[i] = get_normalized_avg_strategy(info_idx, hand, node->board,
                                                    node->get_round());
   }
@@ -596,8 +619,13 @@ vector<double> OutcomeSamplingCFR::train(hand_t hand, INode *curr_node,
   if (curr_node->is_terminal()) {
     if (curr_node->is_fold()) {
       FoldNode *node = (FoldNode *)curr_node;
-      return vector<double>{reach[1] * node->value / sp,
-                            reach[0] * -node->value / sp};
+      int foldp = node->get_player();
+      std::vector<double> values{
+        foldp == 0 ? -node->value : node->value, 
+        foldp == 1 ? -node->value : node->value
+      };
+      return vector<double>{reach[1] * values[0] / sp,
+                            reach[0] * values[1] / sp};
     }
     // else showdown
     double sdv = hand.value[0];
@@ -617,7 +645,7 @@ vector<double> OutcomeSamplingCFR::train(hand_t hand, INode *curr_node,
       avg_strategy[info_idx][bucket * avg.nb_entries + i] +=
           (reach[node->get_player()] * strategy[i]) / sp;
 
-    const double exploration = 0.4;
+    const double exploration = 0.6;
     int sampled_action;
 
     std::discrete_distribution<int> d{exploration, 1 - exploration};

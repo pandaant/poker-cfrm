@@ -12,6 +12,8 @@
 #include "action_abstraction.hpp"
 #include "abstract_game.hpp"
 #include "cfrm.hpp"
+#include "main_functions.hpp"
+#include "functions.cpp"
 
 using std::cout;
 using std::string;
@@ -24,7 +26,7 @@ namespace po = boost::program_options;
 
 struct {
   game_t type = leduc;
-  string handranks_path  = "/usr/local/freedom/data/handranks.dat";
+  string handranks_path = "/usr/local/freedom/data/handranks.dat";
   string game_definition = "../../games/leduc.limit.2p.game";
 
   card_abstraction card_abs = NULLCARD_ABS;
@@ -32,15 +34,16 @@ struct {
   string card_abs_param = "";
   string action_abs_param = "";
 
-  int nb_threads = 1;
+  int nb_threads = 6;
   size_t seed = time(NULL);
 
-  double runtime = 5;
+  double runtime = 50;
   double checkpoint_time = -1;
 
   string dump_strategy = ""; //"holdem.2p.6std.bigabs.limit.strategy";
   string init_strategy = "";
 
+  bool dump_avg_strategy = true;
   bool print_strategy = true;
   bool print_best_response = true;
 } options;
@@ -51,13 +54,22 @@ ecalc::Handranks *handranks;
 int parse_options(int argc, char **argv);
 void read_game(char *game_definition);
 template <class T> std::string comma_format(T value);
-CardAbstraction *load_card_abstraction(card_abstraction abs, string param);
-ActionAbstraction *load_action_abstraction(action_abstraction abs,
-                                           string param);
 
 int main(int argc, char **argv) {
   if (parse_options(argc, argv) == 1)
     return 1;
+
+  //std::vector<uint8_t> d{(uint8_t)0, (uint8_t)4, (uint8_t)8, (uint8_t)12};
+  //uint64_t b = deck_to_bitset(d);
+//std::vector<uint8_t> deck = bitset_to_deck(b, 52);
+//for(unsigned i = 0; i < deck.size(); ++i)
+    //std::cout << int(deck[i]) << "\n";
+
+//hand_list bv = deck_to_combinations(2,deck);
+//for(unsigned i = 0; i < bv.size(); ++i)
+    //std::cout << int(bv[i][0]) << "," << int(bv[i][1]) << "\n";
+
+    //exit(1);
 
   cout << "initializing rng with seed: " << options.seed << "\n";
   nbgen rng(options.seed);
@@ -68,8 +80,10 @@ int main(int argc, char **argv) {
   cout << "reading gamedefinition from: " << options.game_definition << "\n";
   read_game((char *)options.game_definition.c_str());
 
-  CardAbstraction* card_abs = load_card_abstraction(options.card_abs, options.card_abs_param);
-  ActionAbstraction* action_abs = load_action_abstraction(options.action_abs, options.action_abs_param);
+  CardAbstraction *card_abs =
+      load_card_abstraction(gamedef, options.card_abs, options.card_abs_param);
+  ActionAbstraction *action_abs = load_action_abstraction(
+      gamedef, options.action_abs, options.action_abs_param);
 
   AbstractGame *game;
   switch (options.type) {
@@ -126,15 +140,15 @@ int main(int argc, char **argv) {
                                             checkpoint_start).count() <=
             checkpoint_time.count())
       continue;
-    std::cout << "checkpiot\n";
 
     pause_threads = true;
     // graceful pause
     std::this_thread::sleep_for(ch::milliseconds(100));
 
-    if (options.print_best_response){
+    if (options.print_best_response) {
       vector<double> br = cfr->best_response();
-      cout << "BR :" << br[0] << " + " << br[1] << " = " << br[0] + br[1] << "\n";
+      cout << "BR :" << br[0] << " + " << br[1] << " = " << br[0] + br[1]
+           << "\n";
     }
 
     if (options.dump_strategy != "") {
@@ -152,15 +166,16 @@ int main(int argc, char **argv) {
   }
 
   size_t iter_cnt_sum = 0;
-  for(unsigned i = 0; i < iter_threads_cnt.size(); ++i)
-      iter_cnt_sum += iter_threads_cnt[i];
+  for (unsigned i = 0; i < iter_threads_cnt.size(); ++i)
+    iter_cnt_sum += iter_threads_cnt[i];
   std::cout << "#iterations: " << comma_format(iter_cnt_sum) << "\n";
 
-  //std::cout << "Game tree size: " << cfr->count_bytes(game->game_tree_root()) /
-                                         //1024 << " kb\n";
-  //std::cout << "Public tree size: "
-            //<< cfr->count_bytes(game->public_tree_root()) / 1024 << " kb\n";
-            
+   std::cout << "Game tree size: " << cfr->count_bytes(game->game_tree_root())
+   /
+   1024 << " kb\n";
+   std::cout << "Public tree size: "
+  << cfr->count_bytes(game->public_tree_root()) / 1024 << " kb\n";
+
   if (options.dump_strategy != "")
     cfr->dump((char *)options.dump_strategy.c_str());
 
@@ -178,23 +193,36 @@ int main(int argc, char **argv) {
 int parse_options(int argc, char **argv) {
   try {
     po::options_description desc("Allowed options");
-    desc.add_options()
-        ("help,h", "produce help message")
-        ("game-type,t", po::value<string>(), "kuhn,leduc,holdem")
-        ("card-abstraction,c", po::value<string>(),"set the card abstraction to use.")
-        ("card-abstraction-param,m", po::value<string>(&options.card_abs_param),"parameter passed to the card abstraction.")
-        ("action-abstraction,a", po::value<string>(), "set action abstraction to use")
-        ("action-abstraction-param,n", po::value<string>(&options.action_abs_param),"parameter passed to the action abstraction.")
-        ("runtime,r", po::value<double>(&options.runtime), "runtime in seconds")
-        ("checkpoint,k", po::value<double>(&options.checkpoint_time), "checkpoint time in seconds.")
-        ("dump-stategy,d", po::value<string>(&options.dump_strategy),"safe generated strategy to file.")
-        ("init-stategy,i", po::value<string>(&options.init_strategy),"initialize regrets with an existing strategy")
-        ("print-strategy,p", po::bool_switch(&options.print_strategy),"print strategy in human readable format")
-        ("print-best-response,b", po::bool_switch(&options.print_best_response),"calculate best response at checkpoints.")
-        ("threads", po::value<int>(&options.nb_threads),"set number of threads to use. default: 1")
-        ("seed", po::value<size_t>(&options.seed),"set seed to use. default: current time")
-        ("gamedef,g", po::value<string>(&options.game_definition),"gamedefinition to use.")
-        ("handranks", po::value<string>(&options.handranks_path),"path to handranks file. (if not installed)");
+    desc.add_options()("help,h", "produce help message")(
+        "game-type,t", po::value<string>(),
+        "kuhn,leduc,holdem")("card-abstraction,c", po::value<string>(),
+                             "set the card abstraction to use.")(
+        "card-abstraction-param,m", po::value<string>(&options.card_abs_param),
+        "parameter passed to the card abstraction.")(
+        "action-abstraction,a", po::value<string>(),
+        "set action abstraction to use")(
+        "action-abstraction-param,n",
+        po::value<string>(&options.action_abs_param),
+        "parameter passed to the action abstraction.")(
+        "runtime,r", po::value<double>(&options.runtime), "runtime in seconds")(
+        "checkpoint,k", po::value<double>(&options.checkpoint_time),
+        "checkpoint time in seconds.")(
+        "dump-stategy,d", po::value<string>(&options.dump_strategy),
+        "safe generated strategy to file.")(
+        "init-stategy,i", po::value<string>(&options.init_strategy),
+        "initialize regrets with an existing strategy")(
+        "print-strategy,p", po::bool_switch(&options.print_strategy),
+        "print strategy in human readable format")(
+        "print-best-response,b", po::bool_switch(&options.print_best_response),
+        "calculate best response at checkpoints.")(
+        "threads", po::value<int>(&options.nb_threads),
+        "set number of threads to use. default: 1")(
+        "seed", po::value<size_t>(&options.seed),
+        "set seed to use. default: current time")(
+        "gamedef,g", po::value<string>(&options.game_definition),
+        "gamedefinition to use.")("handranks",
+                                  po::value<string>(&options.handranks_path),
+                                  "path to handranks file. (if not installed)");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -230,10 +258,10 @@ int parse_options(int argc, char **argv) {
     }
   }
   catch (exception &e) {
-      std::cout << e.what() << "\n";
+    std::cout << e.what() << "\n";
   }
   catch (...) {
-      std::cout << "unknown error while parsing options.\n";
+    std::cout << "unknown error while parsing options.\n";
   }
   return 0;
 }
@@ -256,29 +284,4 @@ template <class T> std::string comma_format(T value) {
   ss.imbue(std::locale(""));
   ss << std::fixed << value;
   return ss.str();
-}
-
-CardAbstraction *load_card_abstraction(card_abstraction abs, string param){
-  switch (abs) {
-  case NULLCARD_ABS:
-    return new NullCardAbstraction(gamedef, param);
-    break;
-  case BLINDCARD_ABS:
-    return new BlindCardAbstraction(gamedef, param);
-    break;
-  case CLUSTERCARD_ABS:
-    return new ClusterCardAbstraction(gamedef, param);
-    break;
-  };
-  throw std::runtime_error("unknown card abstraction");
-}
-
-ActionAbstraction *load_action_abstraction(action_abstraction abs,
-                                           string param){
-  switch (abs) {
-  case NULLACTION_ABS:
-    return new NullActionAbstraction(gamedef,param);
-    break;
-  };
-  throw std::runtime_error("unknown action abstraction");
 }

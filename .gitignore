@@ -1,3 +1,6 @@
+*.strategy
+*.card_abs
+*.test
 *.swp
 *.o
 *.d

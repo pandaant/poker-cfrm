@@ -18,6 +18,7 @@ namespace ch = std::chrono;
 namespace po = boost::program_options;
 
 enum metric_t { EHS, EMD };
+const char* metric_str[] = { "EHS", "EMD" };
 
 struct {
   string handranks_path = "/usr/local/freedom/data/handranks.dat";
@@ -46,14 +47,25 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+  cout << "computing abstraction using " << metric_str[options.metric] << " metric.\n";
+
   cout << "initializing rng with seed: " << options.seed << "\n";
   nbgen rng(options.seed);
 
   cout << "loading handranks from: " << options.handranks_path << "\n";
   handranks = new ecalc::Handranks(options.handranks_path.c_str());
 
-  AbstractionGenerator *generator = new AbstractionGenerator(
-      options.nb_buckets, options.nb_samples, handranks, options.nb_threads);
+  AbstractionGenerator *generator;
+  switch (options.metric) {
+  case EHS:
+    generator = new EHSAbstractionGenerator(
+        options.nb_buckets, options.nb_samples, handranks, options.nb_threads);
+    break;
+  case EMD:
+    generator = new EMDAbstractionGenerator(
+        options.nb_buckets, options.nb_samples, handranks, options.nb_threads);
+    break;
+  };
 
   generator->generate();
   cout << "saving abstraction to " << options.save_to << "\n";
