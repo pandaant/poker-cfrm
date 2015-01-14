@@ -34,6 +34,7 @@ typedef Entry<double> entry_t;
 
 typedef std::vector<uint8_t> card_c;
 typedef std::vector<int> int_c;
+typedef std::vector<double> dbl_c;
 typedef std::vector<Action> action_c;
 typedef std::vector<entry_t> entry_c;
 typedef std::vector<card_c> hand_list;
