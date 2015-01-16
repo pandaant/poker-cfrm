@@ -22,6 +22,28 @@ struct datapoint {
 };
 */
 
+static std::vector<dbl_c> gen_cost_matrix(unsigned rows, unsigned cols) {
+  std::vector<dbl_c> cost_mat(rows, dbl_c(cols));
+
+  int max_cost_mat = -1;
+  int j = -1;
+  for (unsigned int c1 = 0; c1 < rows; ++c1) {
+    ++j;
+    int i = -1;
+    for (unsigned int c2 = 0; c2 < cols; ++c2) {
+      ++i;
+      cost_mat[i][j] = abs(i - j);
+    }
+  }
+  return cost_mat;
+}
+
+static double emd_distance(dbl_c &hist_a, dbl_c &hist_b,
+                           std::vector<dbl_c> cost_mat) {
+  return emd_hat<double>()(hist_a, hist_b, cost_mat);
+}
+
+// TODO init rng externally!
 template <class DATAPOINT>
 void kmpp(std::vector<double> &centers, std::vector<DATAPOINT> &dataset) {
   boost::mt19937 rng(time(0));
@@ -37,6 +59,59 @@ void kmpp(std::vector<double> &centers, std::vector<DATAPOINT> &dataset) {
     boost::random::discrete_distribution<> dist(variance.begin(),
                                                 variance.end());
     centers[i] = dataset[dist(rng)].value;
+  }
+  // centers[i] = dataset[rand() % dataset.size()].value;
+}
+
+template <class DATAPOINT>
+void kmpp_emd(std::vector<DATAPOINT> &centers, std::vector<DATAPOINT> &dataset,
+              std::vector<dbl_c> cost_mat, unsigned nb_threads = 1) {
+  std::cout << "initializing clustering with kmeans++ ...";
+  boost::mt19937 rng(time(0));
+
+  size_t num_data = dataset.size();
+  size_t num_features = dataset[0].histogram.size();
+
+  int per_block = num_data / nb_threads;
+  std::vector<size_t> thread_block_size(nb_threads, per_block);
+  thread_block_size.back() += num_data - nb_threads * per_block;
+  std::vector<std::thread> eval_threads(nb_threads);
+  size_t accumulator;
+
+  centers[0] = dataset[rand() % num_data];
+  for (unsigned curr_center = 1; curr_center < centers.size(); ++curr_center) {
+    std::vector<double> variance(num_data); // TODO das aus dem loop nehmen?
+    accumulator = 0;
+
+    for (int t = 0; t < nb_threads; ++t) {
+      accumulator += thread_block_size[t];
+      eval_threads[t] =
+          std::thread([t, accumulator, &dataset, &thread_block_size,
+                      &centers, &cost_mat, &rng, &curr_center, &num_data, &variance] {
+            for (size_t i = (accumulator - thread_block_size[t]);
+                 i < accumulator; ++i) {
+              //if (t == 0 && i % 10000 == 0)
+                //std::cout << "\r" << (int)(100 * (i / (1.0 * accumulator)))
+                          //<< "%" << std::flush;
+
+                variance[i] = emd_distance(centers[curr_center - 1].histogram,
+                                           dataset[i].histogram, cost_mat);
+                variance[i] *= variance[i];
+            }
+          });
+    }
+
+    for (int t = 0; t < nb_threads; ++t)
+      eval_threads[t].join();
+    //std::cout << "\r100%\n";
+  //std::cout << "done.\n";
+
+    boost::random::discrete_distribution<> dist(variance.begin(),
+                                                variance.end());
+    size_t choosen = dist(rng);
+    centers[curr_center] = dataset[choosen];
+    //std::cout << "center " << curr_center << " has distance " << fabs(variance[choosen])
+              //<< "\n";
   }
   // centers[i] = dataset[rand() % dataset.size()].value;
 }
@@ -77,27 +152,6 @@ void kmeans(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
   } while ((1.0 * changed) / dataset.size() > epsilon);
 }
 
-static std::vector<dbl_c> gen_cost_matrix(unsigned rows, unsigned cols) {
-  std::vector<dbl_c> cost_mat(rows, dbl_c(cols));
-
-  int max_cost_mat = -1;
-  int j = -1;
-  for (unsigned int c1 = 0; c1 < rows; ++c1) {
-    ++j;
-    int i = -1;
-    for (unsigned int c2 = 0; c2 < cols; ++c2) {
-      ++i;
-      cost_mat[i][j] = abs(i - j);
-    }
-  }
-  return cost_mat;
-}
-
-static double emd_distance(dbl_c &hist_a, dbl_c &hist_b,
-                           std::vector<dbl_c> cost_mat) {
-  return emd_hat<double>()(hist_a, hist_b, cost_mat);
-}
-
 template <class DATAPOINT>
 void kmeans_emd(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
                 unsigned nb_threads = 1, double epsilon = 0.01) {
@@ -109,7 +163,7 @@ void kmeans_emd(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
   vector<DATAPOINT> centers(nb_clusters);
   std::vector<dbl_c> cost_mat =
       gen_cost_matrix(dataset[0].histogram.size(), dataset[0].histogram.size());
-  // kmpp(centers, dataset);
+  kmpp_emd(centers, dataset, cost_mat,nb_threads);
 
   size_t num_data = dataset.size();
   size_t num_features = dataset[0].histogram.size();
@@ -129,7 +183,7 @@ void kmeans_emd(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
 
     for (int t = 0; t < nb_threads; ++t) {
       accumulator += thread_block_size[t];
-       //std::cout << "i am thread " << t << "\n";
+      // std::cout << "i am thread " << t << "\n";
       // (t*thread_block_size[t]) << " to " << accumulator << "\n";
       eval_threads[t] =
           std::thread([t, accumulator, &dataset, &thread_block_size,
@@ -142,8 +196,10 @@ void kmeans_emd(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
               vector<double> variance(nb_clusters);
               unsigned curr_cluster = dataset[i].cluster;
               for (unsigned b = 0; b < nb_clusters; ++b) {
-                variance[b] = fabs(emd_distance(
-                    dataset[i].histogram, centers[b].histogram, cost_mat));
+                // variance[b] = fabs(emd_distance(
+                // dataset[i].histogram, centers[b].histogram, cost_mat));
+                variance[b] = emd_distance(dataset[i].histogram,
+                                           centers[b].histogram, cost_mat);
               }
 
               size_t min_cluster = std::distance(
@@ -155,7 +211,7 @@ void kmeans_emd(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
             }
           });
     }
-    
+
     for (int t = 0; t < nb_threads; ++t)
       eval_threads[t].join();
     std::cout << "\r100%\n";

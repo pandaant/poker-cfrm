@@ -28,9 +28,13 @@ struct {
   size_t seed = time(NULL);
   string save_to = "";
 
-  int_c nb_buckets{169, 100, 100, 1000};
-  int_c nb_samples{0, 50, 25, 1000};
-  int_c num_history_points{0, 10, 10, 0};
+  string print_hand_hist = "";
+  string print_hand_ochs = "";
+  string hist_calc_board = "";
+
+  int_c nb_buckets{169, 10, 10, 10};
+  int_c nb_samples{0, 5, 2, 10};
+  int_c num_history_points{0, 4, 2, 0};
 
   metric_t metric = EMD;
 } options;
@@ -45,6 +49,35 @@ int main(int argc, char **argv) {
   if (parse_options(argc, argv) == 1)
     return 1;
 
+  cout << "initializing rng with seed: " << options.seed << "\n";
+  nbgen rng(options.seed);
+
+  cout << "loading handranks from: " << options.handranks_path << "\n";
+  handranks = new ecalc::Handranks(options.handranks_path.c_str());
+
+  if (options.print_hand_hist != "") {
+    poker::Hand hand = poker::Hand(options.print_hand_hist);
+    // cout << hand.str() << "\n";
+
+    std::ofstream tmp("tmp");
+    EMDAbstractionGenerator *generator = new EMDAbstractionGenerator(
+        tmp, options.nb_buckets, options.nb_samples, {100,10,10,10},
+        handranks, options.nb_threads);
+
+    uint8_t cards[7] = {
+        ((uint8_t)(hand.highcard().card() - 1)), ((uint8_t)(hand.lowcard().card() - 1)), 0, 0, 0, 0, 0};
+    EMDAbstractionGenerator::hand_feature feature;
+    feature.histogram = dbl_c(100); 
+    generator->generate_histogramm(cards, 0, feature, rng, 10000, 1000);
+
+    double step = 1.0/feature.histogram.size();
+    for(unsigned i = 0; i < feature.histogram.size(); ++i){
+       cout << ((step*i)+(step/2)) << "\t" << feature.histogram[i] << "\n"; 
+    }
+
+    exit(1);
+  }
+
   if (options.save_to == "") {
     cout << "save_to argument required.\n";
     exit(1);
@@ -53,12 +86,6 @@ int main(int argc, char **argv) {
 
   cout << "computing abstraction using " << metric_str[options.metric]
        << " metric.\n";
-
-  cout << "initializing rng with seed: " << options.seed << "\n";
-  nbgen rng(options.seed);
-
-  cout << "loading handranks from: " << options.handranks_path << "\n";
-  handranks = new ecalc::Handranks(options.handranks_path.c_str());
 
   AbstractionGenerator *generator, *ehs, *emd, *si, *ochs;
   si = new SuitIsomorphAbstractionGenerator(dump_to);
@@ -111,6 +138,12 @@ int parse_options(int argc, char **argv) {
     desc.add_options()("help,h", "produce help message")(
         "save-to,s", po::value<string>(&options.save_to),
         "safe generated abstraction to file.")(
+        "print-hand-hist", po::value<string>(&options.print_hand_hist),
+        "prints the generated histogramm for given hand like AhAs")(
+        "print-hand-ochs", po::value<string>(&options.print_hand_ochs),
+        "prints the OCHS histogramm for given hand like AhAs")(
+        "set-print-board", po::value<string>(&options.hist_calc_board),
+        "if printing a histogramm the board can be set for the calculation.")(
         "threads", po::value<int>(&options.nb_threads),
         "set number of threads to use. default: 1")(
         "seed", po::value<size_t>(&options.seed),
