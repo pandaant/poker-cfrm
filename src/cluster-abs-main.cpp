@@ -32,9 +32,10 @@ struct {
   string print_hand_ochs = "";
   string hist_calc_board = "";
 
-  int_c nb_buckets{169, 10, 10, 10};
-  int_c nb_samples{0, 5, 2, 10};
-  int_c num_history_points{0, 4, 2, 0};
+  int_c nb_buckets{169, 10, 10, 100};
+  int_c nb_samples{0, 0, 0, 1};
+  int_c num_history_points{0, 5, 4, 0};
+  int_c nb_hist_samples_per_round{0, 100, 70, 50};
 
   metric_t metric = EMD;
 } options;
@@ -61,18 +62,23 @@ int main(int argc, char **argv) {
 
     std::ofstream tmp("tmp");
     EMDAbstractionGenerator *generator = new EMDAbstractionGenerator(
-        tmp, options.nb_buckets, options.nb_samples, {100,10,10,10},
-        handranks, options.nb_threads);
+        tmp, options.nb_buckets, options.nb_samples, {100, 10, 10, 10},
+        options.nb_hist_samples_per_round, handranks, options.nb_threads);
 
-    uint8_t cards[7] = {
-        ((uint8_t)(hand.highcard().card() - 1)), ((uint8_t)(hand.lowcard().card() - 1)), 0, 0, 0, 0, 0};
+    uint8_t cards[7] = {((uint8_t)(hand.highcard().card() - 1)),
+                        ((uint8_t)(hand.lowcard().card() - 1)),
+                        0,
+                        0,
+                        0,
+                        0,
+                        0};
     EMDAbstractionGenerator::hand_feature feature;
-    feature.histogram = dbl_c(100); 
+    feature.histogram = dbl_c(100);
     generator->generate_histogramm(cards, 0, feature, rng, 10000, 1000);
 
-    double step = 1.0/feature.histogram.size();
-    for(unsigned i = 0; i < feature.histogram.size(); ++i){
-       cout << ((step*i)+(step/2)) << "\t" << feature.histogram[i] << "\n"; 
+    double step = 1.0 / feature.histogram.size();
+    for (unsigned i = 0; i < feature.histogram.size(); ++i) {
+      cout << ((step * i) + (step / 2)) << "\t" << feature.histogram[i] << "\n";
     }
 
     exit(1);
@@ -91,7 +97,7 @@ int main(int argc, char **argv) {
   si = new SuitIsomorphAbstractionGenerator(dump_to);
   emd = new EMDAbstractionGenerator(
       dump_to, options.nb_buckets, options.nb_samples,
-      options.num_history_points, handranks, options.nb_threads);
+      options.num_history_points, options.nb_hist_samples_per_round,handranks, options.nb_threads);
   ochs = new OCHSAbstractionGenerator(
       dump_to, options.nb_buckets, options.nb_samples,
       options.num_history_points, handranks, options.nb_threads);

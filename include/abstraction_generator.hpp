@@ -64,50 +64,49 @@ public:
   }
 
   virtual void generate(nbgen &rng) {
-    int_c board_card_sum{0, 3, 4, 5};
     for (int r = 0; r < nb_buckets.size(); ++r) {
       size_t round_size = indexer[r].round_size[(r == 0) ? 0 : 1];
-      std::cout << "evaluating round " << r << " holdings. required space: "
-                << ((sizeof(unsigned) + sizeof(double)) * round_size) /
-                       (1024 * 1024.0 * 1024.0) << " gb \n";
-      std::vector<hand_feature> *features =
-          new std::vector<hand_feature>(round_size);
+      std::cout << "evaluating " << round_size << " combinations in round " << r
+                << ". required space: " << (sizeof(hand_feature) * round_size) /
+                                               (1024 * 1024.0 * 1024.0)
+                << " gb \n";
+      generate_round(r, rng);
+    }
+  }
+
+  virtual void generate_round(int round, nbgen &rng) {
+    int_c board_card_sum{0, 3, 4, 5};
+      size_t round_size = indexer[round].round_size[(round == 0) ? 0 : 1];
+      std::vector<hand_feature> features = std::vector<hand_feature>(round_size);
 
       // thread variables
       int per_block = round_size / nb_threads;
       std::vector<size_t> thread_block_size(nb_threads, per_block);
       thread_block_size.back() += round_size - nb_threads * per_block;
-      // for(unsigned i = 0; i < thread_block_size.size(); ++i)
-      // std::cout << "#" << i << ": " << thread_block_size[i] << "\n";
 
       std::vector<std::thread> eval_threads(nb_threads);
       size_t accumulator = 0;
       for (int t = 0; t < nb_threads; ++t) {
         accumulator += thread_block_size[t];
-        // std::cout << "i am thread " << t << " and i eval index " <<
-        // (t*thread_block_size[t]) << " to " << accumulator << "\n";
         eval_threads[t] =
-            std::thread([t, r, accumulator, features, &board_card_sum,
+            std::thread([t, round, accumulator, &features, &board_card_sum,
                          &thread_block_size, this] {
-              // std::cout << "i am thread " << t << " \n";
-
               uint8_t cards[7];
-              std::vector<ecalc::card> board(board_card_sum[r]);
+              std::vector<ecalc::card> board(board_card_sum[round]);
               ecalc::SingleHandlist handlist(poker::Hand(1, 2));
 
               for (size_t i = (accumulator - thread_block_size[t]);
                    i < accumulator; ++i) {
-                hand_unindex(&indexer[r], (r == 0) ? 0 : 1, i, cards);
+                hand_unindex(&indexer[round], (round == 0) ? 0 : 1, i, cards);
                 handlist.set_hand(poker::Hand(cards[0] + 1, cards[1] + 1));
-                for (int j = 2; j < board_card_sum[r] + 2; ++j) {
+                for (int j = 2; j < board_card_sum[round] + 2; ++j) {
                   board[j - 2] = cards[j] + 1;
                 }
-                (*features)[i].value =
+                features[i].value =
                     calc[t]
                         ->evaluate_vs_random(&handlist, 1, board, {},
-                                             nb_samples[r])[0]
+                                             nb_samples[round])[0]
                         .pwin_tie();
-                // std::cout << t << ":" << (*features)[i].value << "\n";
               }
             });
       }
@@ -116,44 +115,20 @@ public:
         eval_threads[t].join();
 
       std::cout << "clustering " << round_size << " holdings into "
-                << nb_buckets[r] << " buckets..." << std::flush;
-      kmeans(nb_buckets[r], *features);
-      // buckets[r] = std::vector<unsigned>(features->size());
-      // for (size_t y = 0; y < features->size(); ++y)
-      // buckets[r][y] = (*features)[y].cluster;
+                << nb_buckets[round] << " buckets...\n";
+      kmeans(nb_buckets[round], features);
+        std::cout << "writing abstraction for round to file...\n";
+        dump_to->write(reinterpret_cast<const char *>(&nb_buckets[round]),
+                       sizeof(nb_buckets[round]));
 
-      dump_to->write(reinterpret_cast<const char *>(&nb_buckets[r]),
-                     sizeof(nb_buckets[r]));
-
-      size_t nb_entries = indexer[r].round_size[r == 0 ? 0 : 1];
-      for (size_t i = 0; i < nb_entries; ++i) {
-        dump_to->write(reinterpret_cast<const char *>(&(*features)[i].cluster),
-                       sizeof((*features)[i].cluster));
-      }
-
-      delete features;
+        size_t nb_entries = indexer[round].round_size[round == 0 ? 0 : 1];
+        for (size_t i = 0; i < nb_entries; ++i) {
+          dump_to->write(reinterpret_cast<const char *>(&features[i].cluster),
+                         sizeof(features[i].cluster));
+        }
       std::cout << "done.\n";
-    }
   }
 
-  virtual void generate_round(int round, nbgen &rng) {}
-
-  // virtual void dump(int round, std::vector<unsigned> buckets) {
-  // std::ofstream fs(dump_name, std::ios::out | std::ios::binary);
-  // for (size_t i = 0; i < buckets.size(); ++i) {
-  // fs.write(reinterpret_cast<const char *>(&nb_buckets[i]),
-  // sizeof(nb_buckets[i]));
-  //}
-
-  // for (size_t r = 0; r < 4; ++r) {
-  // size_t nb_entries = indexer[r].round_size[r == 0 ? 0 : 1];
-  // for (size_t i = 0; i < nb_entries; ++i) {
-  // fs.write(reinterpret_cast<const char *>(&buckets[r][i]),
-  // sizeof(buckets[r][i]));
-  //}
-  //}
-  // fs.close();
-  //}
 };
 
 class EMDAbstractionGenerator : public AbstractionGenerator {
@@ -163,6 +138,7 @@ class EMDAbstractionGenerator : public AbstractionGenerator {
   int_c nb_samples;
   int_c num_history_points;
   dbl_c step_size;
+  int_c nb_hist_samples_per_round;
   std::vector<ecalc::ECalc *> calc;
   hand_indexer_t indexer[4];
 
@@ -179,10 +155,12 @@ public:
 
   EMDAbstractionGenerator(std::ofstream &dump_to, int_c buckets_per_round,
                           int_c samples_per_round, int_c num_history_points,
-                          ecalc::Handranks *hr, int nb_threads = 1)
+                          int_c nb_hist_samples_per_round, ecalc::Handranks *hr,
+                          int nb_threads = 1)
       : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round),
         nb_samples(samples_per_round), calc(nb_threads),
         num_history_points(num_history_points),
+        nb_hist_samples_per_round(nb_hist_samples_per_round),
         step_size(num_history_points.size()), nb_threads(nb_threads) {
 
     for (unsigned i = 0; i < num_history_points.size(); ++i)
@@ -226,7 +204,7 @@ public:
 
   virtual void generate_round(int round, nbgen &rng) {
     int_c board_card_sum{0, 3, 4, 5};
-    int nb_hist_samples = 10;
+    int nb_hist_samples = nb_hist_samples_per_round[round];
     size_t round_size = indexer[round].round_size[(round == 0) ? 0 : 1];
     std::cout << "evaluating round " << round << " holdings.\n";
 
