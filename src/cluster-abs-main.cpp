@@ -17,10 +17,10 @@ using std::exception;
 namespace ch = std::chrono;
 namespace po = boost::program_options;
 
-enum metric_t { SI, EHS, EMD, OCHS, MIXED_NEEO, MIXED_NEES };
+enum metric_t { SI, EHS, EMD, OCHS, MIXED_NEEO, MIXED_NEES, MIXED_NSSS };
 const char *metric_str[] = {
     "SUIT ISOMORPH", "4xEHS",                      "4xEMD",
-    "4xOCHS",        "SUIT-ISOMORPH EMD EMD OCHS", "SUIT-ISOMORPH EMD EMD EHS"};
+    "4xOCHS",        "SUIT-ISOMORPH EMD EMD OCHS", "SUIT-ISOMORPH EMD EMD EHS", "SUIT-ISOMORPH EHS EHS EHS"};
 
 struct {
   string handranks_path = "/usr/local/freedom/data/handranks.dat";
@@ -32,8 +32,8 @@ struct {
   string print_hand_ochs = "";
   string hist_calc_board = "";
 
-  int_c nb_buckets{169, 10, 10, 100};
-  int_c nb_samples{0, 0, 0, 1};
+  int_c nb_buckets{169, 10, 10, 10};
+  int_c nb_samples{0, 1000, 1000, 1000};
   int_c num_history_points{0, 5, 4, 0};
   int_c nb_hist_samples_per_round{0, 100, 70, 50};
 
@@ -126,6 +126,10 @@ int main(int argc, char **argv) {
   case MIXED_NEES:
     generator = new MixedAbstractionGenerator(dump_to, {si, emd, emd, ehs});
     break;
+  // NEES = NULL EMD EMD EHS
+  case MIXED_NSSS:
+    generator = new MixedAbstractionGenerator(dump_to, {si, ehs, ehs, ehs});
+    break;
   };
 
   generator->generate(rng);
@@ -175,6 +179,8 @@ int parse_options(int argc, char **argv) {
         options.metric = MIXED_NEEO;
       else if (ca == "mixed_nees")
         options.metric = MIXED_NEES;
+      else if (ca == "mixed_nsss")
+        options.metric = MIXED_NSSS;
     }
 
     if (vm.count("help")) {

@@ -3,6 +3,8 @@
 
 #include <bitset>
 #include <chrono>
+#include <thread>
+#include <fstream>
 #include <ecalc/ecalc.hpp>
 #include <ecalc/single_handlist.hpp>
 #include <ecalc/array_handlist.hpp>
@@ -576,30 +578,9 @@ class SuitIsomorphAbstractionGenerator : public AbstractionGenerator {
   hand_indexer_t indexer[4];
 
 public:
-  SuitIsomorphAbstractionGenerator(std::ofstream &dump_to)
-      : AbstractionGenerator(dump_to) {
-    assert(hand_indexer_init(1, (uint8_t[]) {2}, &indexer[0]));
-    assert(hand_indexer_init(2, (uint8_t[]) {2, 3}, &indexer[1]));
-    assert(hand_indexer_init(2, (uint8_t[]) {2, 4}, &indexer[2]));
-    assert(hand_indexer_init(2, (uint8_t[]) {2, 5}, &indexer[3]));
-  }
-
-  virtual void generate(nbgen &rng) {
-    for (unsigned i = 0; i < 4; ++i)
-      generate_round(i, rng);
-  }
-
-  virtual void generate_round(int round, nbgen &rng) {
-    // TODO datatype to small when round two or three would be used with this
-    // abstraction
-    unsigned nb_entries = indexer[round].round_size[round == 0 ? 0 : 1];
-    dump_to->write(reinterpret_cast<const char *>(&nb_entries),
-                   sizeof(nb_entries));
-
-    for (unsigned i = 0; i < nb_entries; ++i) {
-      dump_to->write(reinterpret_cast<const char *>(&i), sizeof(nb_entries));
-    }
-  }
+  SuitIsomorphAbstractionGenerator(std::ofstream &dump_to);
+  virtual void generate(nbgen &rng);
+  virtual void generate_round(int round, nbgen &rng);
 };
 
 class MixedAbstractionGenerator : public AbstractionGenerator {
@@ -608,21 +589,12 @@ class MixedAbstractionGenerator : public AbstractionGenerator {
 
 public:
   MixedAbstractionGenerator(std::ofstream &dump_to,
-                            std::vector<AbstractionGenerator *> generators)
-      : AbstractionGenerator(dump_to), generators(generators) {}
+                            std::vector<AbstractionGenerator *> generators);
 
-  ~MixedAbstractionGenerator() {}
-  virtual void generate(nbgen &rng) {
-    for (unsigned i = 0; i < generators.size(); ++i) {
-      auto start = ch::steady_clock::now();
-      generators[i]->generate_round(i, rng);
-      std::cout << "round " << i << " eval and clustering took: "
-                << ch::duration_cast<ch::seconds>(ch::steady_clock::now() -
-                                                  start).count() << " sec.\n";
-    }
-  }
+  ~MixedAbstractionGenerator();
+  virtual void generate(nbgen &rng);
 
-  virtual void generate_round(int round, nbgen &rng) {}
+  virtual void generate_round(int round, nbgen &rng);
 };
 
 #endif

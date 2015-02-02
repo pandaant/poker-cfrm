@@ -12,6 +12,7 @@
 #include <boost/random/mersenne_twister.hpp>
 
 #include "emd_hat.hpp"
+#include "definitions.hpp"
 
 /*
 EXAMPLE FOR BASIC DATAPOINT STRUCTURE:
@@ -116,6 +117,7 @@ void kmpp_emd(std::vector<DATAPOINT> &centers, std::vector<DATAPOINT> &dataset,
   // centers[i] = dataset[rand() % dataset.size()].value;
 }
 
+// integrate multithreading TODO
 template <class DATAPOINT>
 void kmeans(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
             double epsilon = 0.01) {

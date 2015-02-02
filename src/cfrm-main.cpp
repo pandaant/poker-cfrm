@@ -170,11 +170,11 @@ int main(int argc, char **argv) {
     iter_cnt_sum += iter_threads_cnt[i];
   std::cout << "#iterations: " << comma_format(iter_cnt_sum) << "\n";
 
-   std::cout << "Game tree size: " << cfr->count_bytes(game->game_tree_root())
-   /
-   1024 << " kb\n";
-   std::cout << "Public tree size: "
-  << cfr->count_bytes(game->public_tree_root()) / 1024 << " kb\n";
+   //std::cout << "Game tree size: " << cfr->count_bytes(game->game_tree_root())
+   ///
+   //1024 << " kb\n";
+   //std::cout << "Public tree size: "
+  //<< cfr->count_bytes(game->public_tree_root()) / 1024 << " kb\n";
 
   if (options.dump_strategy != "")
     cfr->dump((char *)options.dump_strategy.c_str());
@@ -250,6 +250,8 @@ int parse_options(int argc, char **argv) {
       string ca = vm["action-abstraction"].as<string>();
       if (ca == "null")
         options.action_abs = NULLACTION_ABS;
+      else if (ca == "potrel")
+        options.action_abs = POTRELACTION_ABS;
     }
 
     if (vm.count("help")) {

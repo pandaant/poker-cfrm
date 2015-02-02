@@ -12,8 +12,17 @@ public:
 };
 
 class NullActionAbstraction : public ActionAbstraction {
-    public:
-    NullActionAbstraction(const Game* game, string param){}
+public:
+  NullActionAbstraction(const Game *game, string param) {}
+  virtual action_c get_actions(const Game *game, const State &state);
+};
+
+class PotRelationActionAbstraction : public ActionAbstraction {
+  const Game *game;
+  std::vector<double> fractions;
+
+public:
+  PotRelationActionAbstraction(const Game *game, std::vector<double> fractions);
   virtual action_c get_actions(const Game *game, const State &state);
 };
 

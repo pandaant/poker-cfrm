@@ -14,7 +14,7 @@ extern "C" {
 
 enum game_t { kuhn, leduc, holdem };
 
-enum action_abstraction { NULLACTION_ABS };
+enum action_abstraction { NULLACTION_ABS, POTRELACTION_ABS };
 
 enum card_abstraction {
   CLUSTERCARD_ABS,

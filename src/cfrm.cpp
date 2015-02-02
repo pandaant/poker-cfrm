@@ -97,7 +97,9 @@ void CFRM::print_strategy_r(unsigned player, INode *curr_node,
     std::cout << path << ":\n";
     for (unsigned i = 0; i < children.size(); ++i) {
       last_action = children[i]->get_action();
-      std::cout << " " << ActionsStr[last_action.type] << " " << std::fixed;
+      std::cout << " " << ActionsStr[last_action.type]
+          << (last_action.size > 0 ? std::to_string(last_action.size) : "")
+          << " " << std::fixed;
       for (unsigned b = 0; b < nb_buckets; ++b) {
         auto strategy = get_normalized_avg_strategy(info_idx, b);
         std::cout << std::setprecision(3) << strategy[i] << " ";
@@ -112,7 +114,9 @@ void CFRM::print_strategy_r(unsigned player, INode *curr_node,
                                                                       : "";
       last_action = children[i]->get_action();
       print_strategy_r(player, children[i],
-                       path + ActionsStr[last_action.type] + phase_sw);
+                       path + ActionsStr[last_action.type] +
+                           (last_action.size > 0 ? std::to_string(last_action.size) : "") +
+                           phase_sw);
     }
   } else {
     for (unsigned i = 0; i < children.size(); ++i) {
@@ -120,8 +124,11 @@ void CFRM::print_strategy_r(unsigned player, INode *curr_node,
           (round != ((InformationSetNode *)children[i])->get_round()) ? "/"
                                                                       : "";
       last_action = children[i]->get_action();
-      print_strategy_r(player, children[i],
-                       path + ActionsStr[last_action.type] + phase_sw);
+      print_strategy_r(
+          player, children[i],
+          path + ActionsStr[last_action.type] +
+              (last_action.size > 0 ? std::to_string(last_action.size) : "") +
+              phase_sw);
     }
   }
 }

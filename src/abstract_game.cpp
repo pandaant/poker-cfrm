@@ -149,7 +149,7 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
       if (public_tree_cache.size() - 1 < idx)
         public_tree_cache.resize(public_tree_cache.size() + 100);
       public_tree_cache[idx] = deck_to_bitset(newdeck);
-    std::cout << "idx("<<idx<<") = " << public_tree_cache[idx] << "\n";
+    //std::cout << "idx("<<idx<<") = " << public_tree_cache[idx] << "\n";
 
       c->children.push_back(init_public_tree(action, state, idx, newboard,
                                              newdeck, game, idx));
