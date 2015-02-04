@@ -7,7 +7,6 @@ LDLIBS ?=-c
 CXXFLAGS ?= -std=c++11 -MMD -MP
 
 INCLUDES +=-I ./include\
-		   -I ../../acpc_server\
 		   -I ../../lib/libpoker/include\
 		   -I ../../lib/libecalc/include
 
