@@ -513,9 +513,9 @@ public:
                       .pwin_tie();
             }
             catch (std::runtime_error e) {
-              std::cout << poker::Hand(cards[0] + 1, cards[1] + 1).str()
-                        << ": lol i got it. setting shit cluster " << ochs
-                        << " to zero\n";
+              //std::cout << poker::Hand(cards[0] + 1, cards[1] + 1).str()
+                        //<< ": lol i got it. setting shit cluster " << ochs
+                        //<< " to zero\n";
 
               features[i].histogram[ochs] = 0;
             }
@@ -544,7 +544,7 @@ public:
 
     std::cout << "clustering " << round_size << " holdings into "
               << nb_buckets[round] << " buckets...\n";
-    kmeans_emd(nb_buckets[round], features, nb_threads);
+    kmeans_l2(nb_buckets[round], features, nb_threads);
     dump_to->write(reinterpret_cast<const char *>(&nb_buckets[round]),
                    sizeof(nb_buckets[round]));
 

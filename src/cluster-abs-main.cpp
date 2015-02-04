@@ -17,10 +17,21 @@ using std::exception;
 namespace ch = std::chrono;
 namespace po = boost::program_options;
 
-enum metric_t { SI, EHS, EMD, OCHS, MIXED_NEEO, MIXED_NEES, MIXED_NSSS };
+enum metric_t {
+  SI,
+  EHS,
+  EMD,
+  OCHS,
+  MIXED_NEEO,
+  MIXED_NEES,
+  MIXED_NSSS,
+  MIXED_NOOO
+};
 const char *metric_str[] = {
-    "SUIT ISOMORPH", "4xEHS",                      "4xEMD",
-    "4xOCHS",        "SUIT-ISOMORPH EMD EMD OCHS", "SUIT-ISOMORPH EMD EMD EHS", "SUIT-ISOMORPH EHS EHS EHS"};
+    "SUIT ISOMORPH",              "4xEHS",
+    "4xEMD",                      "4xOCHS",
+    "SUIT-ISOMORPH EMD EMD OCHS", "SUIT-ISOMORPH EMD EMD EHS",
+    "SUIT-ISOMORPH EHS EHS EHS",  "SUIT-ISOMORPH OCHS OCHS OCHS"};
 
 struct {
   string handranks_path = "/usr/local/freedom/data/handranks.dat";
@@ -33,8 +44,8 @@ struct {
   string hist_calc_board = "";
 
   int_c nb_buckets{169, 10, 10, 10};
-  int_c nb_samples{0, 1000, 1000, 1000};
-  int_c num_history_points{0, 5, 4, 0};
+  int_c nb_samples{0, 100, 100, 100};
+  int_c num_history_points{0, 8, 8, 8};
   int_c nb_hist_samples_per_round{0, 100, 70, 50};
 
   metric_t metric = EMD;
@@ -97,7 +108,8 @@ int main(int argc, char **argv) {
   si = new SuitIsomorphAbstractionGenerator(dump_to);
   emd = new EMDAbstractionGenerator(
       dump_to, options.nb_buckets, options.nb_samples,
-      options.num_history_points, options.nb_hist_samples_per_round,handranks, options.nb_threads);
+      options.num_history_points, options.nb_hist_samples_per_round, handranks,
+      options.nb_threads);
   ochs = new OCHSAbstractionGenerator(
       dump_to, options.nb_buckets, options.nb_samples,
       options.num_history_points, handranks, options.nb_threads);
@@ -129,6 +141,10 @@ int main(int argc, char **argv) {
   // NEES = NULL EMD EMD EHS
   case MIXED_NSSS:
     generator = new MixedAbstractionGenerator(dump_to, {si, ehs, ehs, ehs});
+    break;
+  // NOOO = NULL OCHS OCHS OCSH
+  case MIXED_NOOO:
+    generator = new MixedAbstractionGenerator(dump_to, {si, ochs, ochs, ochs});
     break;
   };
 
@@ -181,6 +197,8 @@ int parse_options(int argc, char **argv) {
         options.metric = MIXED_NEES;
       else if (ca == "mixed_nsss")
         options.metric = MIXED_NSSS;
+      else if (ca == "mixed_nooo")
+        options.metric = MIXED_NOOO;
     }
 
     if (vm.count("help")) {

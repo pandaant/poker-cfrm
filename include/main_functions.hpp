@@ -24,7 +24,7 @@ ActionAbstraction *load_action_abstraction(const Game *gamedef,
     return new NullActionAbstraction(gamedef,param);
     break;
   case POTRELACTION_ABS:
-    return new PotRelationActionAbstraction(gamedef,std::vector<double>{1});
+    return new PotRelationActionAbstraction(gamedef,std::vector<double>{0.75,1,2,9999});
     break;
   };
   throw std::runtime_error("unknown action abstraction");

@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <iostream>
 #include "definitions.hpp"
 #include "action_abstraction.hpp"
 
@@ -76,10 +77,15 @@ action_c PotRelationActionAbstraction::get_actions(const Game *game,
       int32_t max_raise_size;
       int32_t pot_size = state.spent[0] + state.spent[1];
       if (raiseIsValid(game, &state, &min_raise_size, &max_raise_size)) {
-        for (int s = 0; s <= fractions.size(); ++s) {
+      //std::cout << "min: " << min_raise_size << ", max: " << max_raise_size << ", pot: " << pot_size << ",max spent: " << state.maxSpent << "\n";
+        for (int s = 0; s < fractions.size(); ++s) {
           double raise_size = state.maxSpent + fractions[s] * pot_size;
           if( raise_size > max_raise_size )
               raise_size = max_raise_size;
+          if( raise_size < min_raise_size )
+              raise_size = min_raise_size;
+
+          //std::cout << "attempting to raise: " << raise_size << "\n";
 
           actions[num_actions] = action;
           actions[num_actions].size = raise_size;
@@ -106,6 +112,7 @@ action_c PotRelationActionAbstraction::get_actions(const Game *game,
       ++num_actions;
     }
   }
+  //std::cout << "actions: " << num_actions << "\n";
 
   actions.resize(num_actions);
    assert( !error );

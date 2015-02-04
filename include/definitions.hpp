@@ -22,7 +22,7 @@ enum card_abstraction {
   BLINDCARD_ABS
 };
 
-const int MAX_ABSTRACT_ACTIONS = 4;
+const int MAX_ABSTRACT_ACTIONS = 6;
 
 const double DOUBLE_MAX = std::numeric_limits<double>::max();
 

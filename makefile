@@ -8,9 +8,11 @@ CXXFLAGS ?= -std=c++11 -MMD -MP
 
 INCLUDES +=-I ./include\
 		   -I ../../acpc_server\
-		   -I /usr/local/freedom/include
+		   -I ../../lib/libpoker/include\
+		   -I ../../lib/libecalc/include
 
-CPP_LIBRARIES += -L /usr/local/freedom/lib -lpoker -lecalc\
+CPP_LIBRARIES += -L ../../lib/libpoker/lib/release -lpoker\
+				 -L ../../lib/libecalc/lib/release -lecalc\
 				-lpthread -lboost_program_options
 
 ifeq ($(target),debug)
