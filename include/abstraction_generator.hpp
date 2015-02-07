@@ -460,6 +460,7 @@ public:
           poker::Hand(cards[0] + 1, cards[1] + 1));
     }
 
+    //TODO es muss sichergestellt sein, dass kein opp cluster leer ist !!
     for (unsigned i = 0; i < opp_range.size(); ++i) {
       opp_clusters[i] = new ecalc::ArrayHandlist(opp_range[i]);
       std::cout << "opp cluster " << i << ": " << opp_range[i].size()
@@ -550,6 +551,7 @@ public:
 
     size_t nb_entries = indexer[round].round_size[round == 0 ? 0 : 1];
     for (size_t i = 0; i < nb_entries; ++i) {
+        std::cout << i << " = " << features[i].cluster << "\n";
       dump_to->write(reinterpret_cast<const char *>(&features[i].cluster),
                      sizeof(features[i].cluster));
     }
@@ -592,6 +594,20 @@ public:
                             std::vector<AbstractionGenerator *> generators);
 
   ~MixedAbstractionGenerator();
+  virtual void generate(nbgen &rng);
+
+  virtual void generate_round(int round, nbgen &rng);
+};
+
+class PotentialAwareAbstractionGenerator : public AbstractionGenerator {
+  std::vector<AbstractionGenerator *> generators;
+  hand_indexer_t indexer[4];
+
+public:
+  PotentialAwareAbstractionGenerator(std::ofstream &dump_to,
+                            std::vector<AbstractionGenerator *> generators);
+
+  ~PotentialAwareAbstractionGenerator();
   virtual void generate(nbgen &rng);
 
   virtual void generate_round(int round, nbgen &rng);

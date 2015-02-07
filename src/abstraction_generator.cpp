@@ -51,3 +51,25 @@ void MixedAbstractionGenerator::generate(nbgen &rng) {
 }
 
 void MixedAbstractionGenerator::generate_round(int round, nbgen &rng) {}
+
+//
+// POTENTIAL AWARE ABSTRACTION
+//
+
+PotentialAwareAbstractionGenerator::PotentialAwareAbstractionGenerator(
+    std::ofstream &dump_to, std::vector<AbstractionGenerator *> generators)
+    : AbstractionGenerator(dump_to){}
+
+PotentialAwareAbstractionGenerator::~PotentialAwareAbstractionGenerator() {}
+
+void PotentialAwareAbstractionGenerator::generate(nbgen &rng) {
+  for (unsigned i = 0; i < generators.size(); ++i) {
+    auto start = ch::steady_clock::now();
+    generators[i]->generate_round(i, rng);
+    std::cout << "round " << i << " eval and clustering took: "
+              << ch::duration_cast<ch::seconds>(ch::steady_clock::now() - start)
+                     .count() << " sec.\n";
+  }
+}
+
+void PotentialAwareAbstractionGenerator::generate_round(int round, nbgen &rng) {}
