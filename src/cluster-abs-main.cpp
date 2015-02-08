@@ -43,10 +43,10 @@ struct {
   string print_hand_ochs = "";
   string hist_calc_board = "";
 
-  int_c nb_buckets{169, 10, 10, 10};
-  int_c nb_samples{0, 100, 100, 100};
-  int_c num_history_points{0, 8, 8, 8};
-  int_c nb_hist_samples_per_round{0, 100, 70, 50};
+  int_c nb_buckets{169, 10, 2, 1};
+  int_c nb_samples{0, 1, 10, 1};
+  int_c num_history_points{0, 8, 8, 1};
+  int_c nb_hist_samples_per_round{0, 1, 10, 1};
 
   metric_t metric = EMD;
 } options;

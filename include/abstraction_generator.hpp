@@ -448,7 +448,20 @@ public:
               ->evaluate_vs_random(&handlist, 1, {}, {}, 10000)[0]
               .pwin_tie();
     }
-    kmeans(num_opponent_clusters[round], ochs_hands);
+
+      unsigned buckets_empty = 0;
+    do {
+      kmeans(num_opponent_clusters[round], ochs_hands);
+      std::vector<unsigned> elem_buckets(num_opponent_clusters[round], 0);
+      for(unsigned x = 0; x < ochs_hands.size(); ++x){
+       elem_buckets[ochs_hands[x].cluster]++; 
+      }
+      buckets_empty = 0;
+      for(unsigned x = 0; x < elem_buckets.size(); ++x){
+          if(elem_buckets[x] == 0)
+              ++buckets_empty;
+      }
+    } while (buckets_empty > 0);
 
     std::vector<std::vector<poker::Hand>> opp_range(
         num_opponent_clusters[round]);
@@ -551,7 +564,7 @@ public:
 
     size_t nb_entries = indexer[round].round_size[round == 0 ? 0 : 1];
     for (size_t i = 0; i < nb_entries; ++i) {
-        std::cout << i << " = " << features[i].cluster << "\n";
+        //std::cout << i << " = " << features[i].cluster << "\n";
       dump_to->write(reinterpret_cast<const char *>(&features[i].cluster),
                      sizeof(features[i].cluster));
     }
