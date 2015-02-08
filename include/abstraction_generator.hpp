@@ -538,10 +538,14 @@ public:
             // cards[1]+1).str() << " idx " << ochs << ": "<<
             // features[i].histogram[ochs] << "\n";
           }
+          //TODO investigate why normalizing breaks clustering in turn and river
           // normalize
-          for (unsigned ochs = 0; ochs < opp_clusters.size(); ++ochs) {
-            features[i].histogram[ochs] /= mass_sum;
-          }
+          //std::cout << i << ":\t\t";
+          //for (unsigned ochs = 0; ochs < opp_clusters.size(); ++ochs) {
+            //features[i].histogram[ochs] /= mass_sum;
+            ////std::cout << features[i].histogram[ochs] << " ";
+          //}
+          //std::cout << "\n";
         }
 
         // for (unsigned j = 0; j < features[i].histogram.size(); ++j) {
