@@ -43,10 +43,10 @@ struct {
   string print_hand_ochs = "";
   string hist_calc_board = "";
 
-  int_c nb_buckets{169, 10, 10, 10};
-  int_c nb_samples{0, 1000, 1000, 1000};
-  int_c num_history_points{0, 8, 8, 8};
-  int_c nb_hist_samples_per_round{0, 100, 100, 100};
+  int_c nb_buckets{169, 2, 2, 2};
+  int_c nb_samples{0, 9, 7, 9};
+  int_c num_history_points{0, 2, 2, 1};
+  int_c nb_hist_samples_per_round{0, 8, 6, 9};
 
   metric_t metric = EMD;
 } options;
@@ -63,6 +63,7 @@ int main(int argc, char **argv) {
 
   cout << "initializing rng with seed: " << options.seed << "\n";
   nbgen rng(options.seed);
+  boost::mt19937 clusterrng(options.seed); // for clustering
 
   cout << "loading handranks from: " << options.handranks_path << "\n";
   handranks = new ecalc::Handranks(options.handranks_path.c_str());
@@ -74,7 +75,7 @@ int main(int argc, char **argv) {
     std::ofstream tmp("tmp");
     EMDAbstractionGenerator *generator = new EMDAbstractionGenerator(
         tmp, options.nb_buckets, options.nb_samples, {100, 10, 10, 10},
-        options.nb_hist_samples_per_round, handranks, options.nb_threads);
+        options.nb_hist_samples_per_round, handranks, clusterrng, options.nb_threads);
 
     uint8_t cards[7] = {((uint8_t)(hand.highcard().card() - 1)),
                         ((uint8_t)(hand.lowcard().card() - 1)),
@@ -108,13 +109,13 @@ int main(int argc, char **argv) {
   si = new SuitIsomorphAbstractionGenerator(dump_to);
   emd = new EMDAbstractionGenerator(
       dump_to, options.nb_buckets, options.nb_samples,
-      options.num_history_points, options.nb_hist_samples_per_round, handranks,
+      options.num_history_points, options.nb_hist_samples_per_round, handranks,clusterrng,
       options.nb_threads);
   ochs = new OCHSAbstractionGenerator(
       dump_to, options.nb_buckets, options.nb_samples,
-      options.num_history_points, handranks, options.nb_threads);
+      options.num_history_points, handranks,clusterrng, options.nb_threads);
   ehs = new EHSAbstractionGenerator(dump_to, options.nb_buckets,
-                                    options.nb_samples, handranks,
+                                    options.nb_samples, handranks,clusterrng,
                                     options.nb_threads);
 
   switch (options.metric) {

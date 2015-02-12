@@ -42,6 +42,7 @@ class EHSAbstractionGenerator : public AbstractionGenerator {
   int_c nb_samples;
   std::vector<ecalc::ECalc *> calc;
   hand_indexer_t indexer[4];
+  boost::mt19937 &clusterrng;
 
 public:
   ~EHSAbstractionGenerator() {
@@ -50,9 +51,9 @@ public:
   }
 
   EHSAbstractionGenerator(std::ofstream &dump_to, int_c buckets_per_round,
-                          int_c samples_per_round, ecalc::Handranks *hr,
+                          int_c samples_per_round, ecalc::Handranks *hr, boost::mt19937 &rng,
                           int nb_threads = 1)
-      : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round),
+      : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round), clusterrng(rng),
         nb_samples(samples_per_round), calc(nb_threads),
         nb_threads(nb_threads) {
 
@@ -118,8 +119,10 @@ public:
 
       std::cout << "clustering " << round_size << " holdings into "
                 << nb_buckets[round] << " buckets...\n";
-      kmeans(nb_buckets[round], features);
+      kmeans(nb_buckets[round], features, clusterrng);
         std::cout << "writing abstraction for round to file...\n";
+        dump_to->write(reinterpret_cast<const char *>(&round),
+                       sizeof(round));
         dump_to->write(reinterpret_cast<const char *>(&nb_buckets[round]),
                        sizeof(nb_buckets[round]));
 
@@ -143,6 +146,7 @@ class EMDAbstractionGenerator : public AbstractionGenerator {
   int_c nb_hist_samples_per_round;
   std::vector<ecalc::ECalc *> calc;
   hand_indexer_t indexer[4];
+  boost::mt19937 clusterrng;
 
 public:
   struct hand_feature {
@@ -157,9 +161,9 @@ public:
 
   EMDAbstractionGenerator(std::ofstream &dump_to, int_c buckets_per_round,
                           int_c samples_per_round, int_c num_history_points,
-                          int_c nb_hist_samples_per_round, ecalc::Handranks *hr,
+                          int_c nb_hist_samples_per_round, ecalc::Handranks *hr,boost::mt19937 &rng,
                           int nb_threads = 1)
-      : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round),
+      : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round),clusterrng(rng),
         nb_samples(samples_per_round), calc(nb_threads),
         num_history_points(num_history_points),
         nb_hist_samples_per_round(nb_hist_samples_per_round),
@@ -288,9 +292,11 @@ public:
 
     std::cout << "clustering " << round_size << " holdings into "
               << nb_buckets[round] << " buckets...\n";
-    kmeans_emd(nb_buckets[round], features, nb_threads);
+    kmeans_emd(nb_buckets[round], features, clusterrng, nb_threads);
 
     std::cout << "writing abstraction for round to file...\n";
+        dump_to->write(reinterpret_cast<const char *>(&round),
+                       sizeof(round));
     dump_to->write(reinterpret_cast<const char *>(&nb_buckets[round]),
                    sizeof(nb_buckets[round]));
 
@@ -368,7 +374,6 @@ public:
   //}
 };
 
-// TODO does use L2 distance and not EMD for clustering!!!
 class OCHSAbstractionGenerator : public AbstractionGenerator {
   struct ochs_feature {
     unsigned cluster;
@@ -387,6 +392,7 @@ class OCHSAbstractionGenerator : public AbstractionGenerator {
   dbl_c step_size;
   std::vector<ecalc::ECalc *> calc;
   hand_indexer_t indexer[4];
+  boost::mt19937 clusterrng;
 
 public:
   ~OCHSAbstractionGenerator() {
@@ -396,8 +402,8 @@ public:
 
   OCHSAbstractionGenerator(std::ofstream &dump_to, int_c buckets_per_round,
                            int_c samples_per_round, int_c num_opponent_clusters,
-                           ecalc::Handranks *hr, int nb_threads = 1)
-      : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round),
+                           ecalc::Handranks *hr, boost::mt19937 &rng, int nb_threads = 1)
+      : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round),clusterrng(rng),
         nb_samples(samples_per_round), calc(nb_threads),
         num_opponent_clusters(num_opponent_clusters),
         step_size(num_opponent_clusters.size()), nb_threads(nb_threads) {
@@ -451,7 +457,7 @@ public:
 
       unsigned buckets_empty = 0;
     do {
-      kmeans(num_opponent_clusters[round], ochs_hands);
+      kmeans(num_opponent_clusters[round], ochs_hands, clusterrng);
       std::vector<unsigned> elem_buckets(num_opponent_clusters[round], 0);
       for(unsigned x = 0; x < ochs_hands.size(); ++x){
        elem_buckets[ochs_hands[x].cluster]++; 
@@ -562,7 +568,10 @@ public:
 
     std::cout << "clustering " << round_size << " holdings into "
               << nb_buckets[round] << " buckets...\n";
-    kmeans_l2(nb_buckets[round], features, nb_threads);
+    kmeans_l2(nb_buckets[round], features, clusterrng,  nb_threads);
+        dump_to->write(reinterpret_cast<const char *>(&round),
+
+                       sizeof(round));
     dump_to->write(reinterpret_cast<const char *>(&nb_buckets[round]),
                    sizeof(nb_buckets[round]));
 

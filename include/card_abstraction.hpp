@@ -99,12 +99,14 @@ public:
 
     std::ifstream file(param.c_str(), std::ios::in | std::ios::binary);
 
+    int round;
     for (size_t i = 0; i < game->numRounds; ++i) {
-      file.read(reinterpret_cast<char *>(&nb_buckets[i]), sizeof(nb_buckets[i]));
-      buckets[i] = std::vector<unsigned>(indexer[i].round_size[i == 0 ? 0 : 1]);
-      for (unsigned j = 0; j < buckets[i].size(); ++j) {
-        file.read(reinterpret_cast<char *>(&buckets[i][j]),
-                  sizeof(buckets[i][j]));
+      file.read(reinterpret_cast<char *>(&round), sizeof(round));
+      file.read(reinterpret_cast<char *>(&nb_buckets[round]), sizeof(nb_buckets[round]));
+      buckets[i] = std::vector<unsigned>(indexer[round].round_size[round == 0 ? 0 : 1]);
+      for (unsigned j = 0; j < buckets[round].size(); ++j) {
+        file.read(reinterpret_cast<char *>(&buckets[round][j]),
+                  sizeof(buckets[round][j]));
       }
     }
   }

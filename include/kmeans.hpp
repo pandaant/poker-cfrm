@@ -52,10 +52,8 @@ static double emd_distance(dbl_c &hist_a, dbl_c &hist_b,
   return emd_hat<double>()(hist_a, hist_b, cost_mat);
 }
 
-// TODO init rng externally!
 template <class DATAPOINT>
-void kmpp(std::vector<double> &centers, std::vector<DATAPOINT> &dataset) {
-  boost::mt19937 rng(time(0));
+void kmpp(std::vector<double> &centers, std::vector<DATAPOINT> &dataset, boost::mt19937 &rng) {
   centers[0] = dataset[rand() % dataset.size()].value;
   for (unsigned i = 1; i < centers.size(); ++i) {
     std::vector<double> variance(
@@ -73,10 +71,9 @@ void kmpp(std::vector<double> &centers, std::vector<DATAPOINT> &dataset) {
 }
 
 template <class DATAPOINT>
-void kmpp_l2(std::vector<DATAPOINT> &centers, std::vector<DATAPOINT> &dataset,
+void kmpp_l2(std::vector<DATAPOINT> &centers, std::vector<DATAPOINT> &dataset, boost::mt19937 &rng,
              unsigned nb_threads = 1) {
   std::cout << "initializing clustering with kmeans++ ...";
-  boost::mt19937 rng(time(0));
 
   size_t num_data = dataset.size();
   size_t num_features = dataset[0].histogram.size();
@@ -127,9 +124,9 @@ void kmpp_l2(std::vector<DATAPOINT> &centers, std::vector<DATAPOINT> &dataset,
 
 template <class DATAPOINT>
 void kmpp_emd(std::vector<DATAPOINT> &centers, std::vector<DATAPOINT> &dataset,
-              std::vector<dbl_c> cost_mat, unsigned nb_threads = 1) {
+              std::vector<dbl_c> cost_mat, boost::mt19937 &rng, unsigned nb_threads = 1) {
   std::cout << "initializing clustering with kmeans++ ...";
-  boost::mt19937 rng(time(0));
+  //boost::mt19937 rng(time(0));
 
   size_t num_data = dataset.size();
   size_t num_features = dataset[0].histogram.size();
@@ -153,7 +150,7 @@ void kmpp_emd(std::vector<DATAPOINT> &centers, std::vector<DATAPOINT> &dataset,
             for (size_t i = (accumulator - thread_block_size[t]);
                  i < accumulator; ++i) {
               if (t == 0 && i % 10000 == 0)
-                std::cout << "\r" << (int)(100 * (i / (1.0 * accumulator)))
+                std::cout << "\r" << curr_center << ": " << (int)(100 * (i / (1.0 * accumulator)))
                           << "%" << std::flush;
 
                 variance[i] = emd_distance(centers[curr_center - 1].histogram,
@@ -165,8 +162,8 @@ void kmpp_emd(std::vector<DATAPOINT> &centers, std::vector<DATAPOINT> &dataset,
 
     for (int t = 0; t < nb_threads; ++t)
       eval_threads[t].join();
-    std::cout << "\r100%\n";
-  std::cout << "done.\n";
+    std::cout << "\r" << curr_center << ": 100%\n";
+  //std::cout << "done.\n";
 
     boost::random::discrete_distribution<> dist(variance.begin(),
                                                 variance.end());
@@ -180,11 +177,11 @@ void kmpp_emd(std::vector<DATAPOINT> &centers, std::vector<DATAPOINT> &dataset,
 
 // integrate multithreading TODO
 template <class DATAPOINT>
-void kmeans(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
+void kmeans(unsigned nb_clusters, std::vector<DATAPOINT> &dataset, boost::mt19937 &rng,
             double epsilon = 0.01) {
   using std::vector;
   vector<double> centers(nb_clusters);
-  kmpp(centers, dataset);
+  kmpp(centers, dataset,rng);
 
   unsigned changed;
   do {
@@ -216,7 +213,7 @@ void kmeans(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
 }
 
 template <class DATAPOINT>
-void kmeans_emd(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
+void kmeans_emd(unsigned nb_clusters, std::vector<DATAPOINT> &dataset, boost::mt19937 &rng,
                 unsigned nb_threads = 1, double epsilon = 0.01) {
   using std::vector;
 
@@ -226,7 +223,7 @@ void kmeans_emd(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
   vector<DATAPOINT> centers(nb_clusters);
   std::vector<dbl_c> cost_mat =
       gen_cost_matrix(dataset[0].histogram.size(), dataset[0].histogram.size());
-  kmpp_emd(centers, dataset, cost_mat,nb_threads);
+  kmpp_emd(centers, dataset, cost_mat, rng, nb_threads);
 
   size_t num_data = dataset.size();
   size_t num_features = dataset[0].histogram.size();
@@ -317,7 +314,7 @@ void kmeans_emd(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
 }
 
 template <class DATAPOINT>
-void kmeans_l2(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
+void kmeans_l2(unsigned nb_clusters, std::vector<DATAPOINT> &dataset, boost::mt19937 &rng,
                 unsigned nb_threads = 1, double epsilon = 0.01) {
   using std::vector;
 
@@ -327,7 +324,7 @@ void kmeans_l2(unsigned nb_clusters, std::vector<DATAPOINT> &dataset,
   vector<DATAPOINT> centers(nb_clusters);
   //std::vector<dbl_c> cost_mat =
       //gen_cost_matrix(dataset[0].histogram.size(), dataset[0].histogram.size());
-  kmpp_l2(centers, dataset, nb_threads);
+  kmpp_l2(centers, dataset, rng, nb_threads);
 
   size_t num_data = dataset.size();
   size_t num_features = dataset[0].histogram.size();

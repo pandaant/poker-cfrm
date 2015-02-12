@@ -22,6 +22,8 @@ void SuitIsomorphAbstractionGenerator::generate(nbgen &rng) {
 // abstraction
 void SuitIsomorphAbstractionGenerator::generate_round(int round, nbgen &rng) {
   unsigned nb_entries = indexer[round].round_size[round == 0 ? 0 : 1];
+        dump_to->write(reinterpret_cast<const char *>(&round),
+                       sizeof(round));
   dump_to->write(reinterpret_cast<const char *>(&nb_entries),
                  sizeof(nb_entries));
 
