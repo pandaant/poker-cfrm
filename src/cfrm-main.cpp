@@ -219,10 +219,10 @@ int parse_options(int argc, char **argv) {
         "set number of threads to use. default: 1")(
         "seed", po::value<size_t>(&options.seed),
         "set seed to use. default: current time")(
+        "handranks", po::value<string>(&options.handranks_path),
+        "path to handranks file. (if not installed)")(
         "gamedef,g", po::value<string>(&options.game_definition),
-        "gamedefinition to use.")("handranks",
-                                  po::value<string>(&options.handranks_path),
-                                  "path to handranks file. (if not installed)");
+        "gamedefinition to use.");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);

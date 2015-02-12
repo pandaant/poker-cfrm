@@ -1,7 +1,7 @@
 CC	 = clang
 CXX	 = clang++ -g
 
-CFLAGS ?=-std=c11 -Wall -g -O2
+CFLAGS ?=-std=c11 -Wall -g -O2 -j6
 LDLIBS ?=-c
 
 CXXFLAGS ?= -std=c++11 -MMD -MP
