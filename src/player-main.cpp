@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
     return NULL;
   };
 
-  AbstractGame *agame = new HoldemGame(gamedef, cardabs, actionabs);
+  AbstractGame *agame = new HoldemGame(gamedef, cardabs, actionabs, NULL);
   CFRM *cfr =
       new ExternalSamplingCFR(agame, (char *)options.init_strategy.c_str());
 

@@ -111,11 +111,11 @@ public:
 };
 
 class HoldemGame : public AbstractGame {
-  ecalc::Handranks handranks;
+  ecalc::Handranks *handranks;
 
 public:
   HoldemGame(const Game *game_definition, CardAbstraction *cabs,
-             ActionAbstraction *aabs);
+             ActionAbstraction *aabs, ecalc::Handranks* hr);
 
   virtual void evaluate(hand_t &hand);
 };

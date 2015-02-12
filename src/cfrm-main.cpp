@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     game = new LeducGame(gamedef, card_abs, action_abs);
     break;
   case holdem:
-    game = new HoldemGame(gamedef, card_abs, action_abs);
+    game = new HoldemGame(gamedef, card_abs, action_abs, handranks);
     break;
   };
 

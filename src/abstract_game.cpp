@@ -325,8 +325,8 @@ int LeducGame::rank_hand(int hand, int board) {
 }
 
 HoldemGame::HoldemGame(const Game *game_definition, CardAbstraction *cabs,
-                       ActionAbstraction *aabs)
-    : AbstractGame(game_definition, cabs, aabs), handranks("/usr/local/freedom/data/handranks.dat") {}
+                       ActionAbstraction *aabs, ecalc::Handranks* hr )
+    : AbstractGame(game_definition, cabs, aabs), handranks(hr) {}
 
 void HoldemGame::evaluate(hand_t &hand) {
   using namespace ecalc;
@@ -338,8 +338,8 @@ void HoldemGame::evaluate(hand_t &hand) {
   bitset bboard =
       CREATE_BOARD(board[0], board[1], board[2], board[3], board[4]);
 
-  int p1r = LOOKUP_HAND(&handranks, CREATE_HAND(p1[0], p1[1]) | bboard);
-  int p2r = LOOKUP_HAND(&handranks, CREATE_HAND(p2[0], p2[1]) | bboard);
+  int p1r = LOOKUP_HAND(handranks, CREATE_HAND(p1[0], p1[1]) | bboard);
+  int p2r = LOOKUP_HAND(handranks, CREATE_HAND(p2[0], p2[1]) | bboard);
 
   if (p1r > p2r) {
     hand.value[0] = 1;
