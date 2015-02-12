@@ -30,7 +30,7 @@ class InformationSetNode : public INode {
 
 public:
   std::vector<INode *> children;
-  //hand_list hands;
+  // hand_list hands;
   uint64_t hand_idx;
   card_c board;
 
@@ -80,10 +80,8 @@ public:
   vector<vector<double>> payoffs;
 
   ShowdownNode(Action action, double value) : action(action), value(value) {}
-  ShowdownNode(Action action, double value, uint64_t hand_idx, card_c board,
-               vector<vector<double>> payoffs)
-      : action(action), value(value), hand_idx(hand_idx), board(board),
-        payoffs(payoffs) {}
+  ShowdownNode(Action action, double value, uint64_t hand_idx, card_c board)
+      : action(action), value(value), hand_idx(hand_idx), board(board) {}
 
   virtual unsigned get_player() { return -1; }
   virtual bool is_terminal() { return true; }
@@ -109,9 +107,9 @@ public:
       : action(action), fold_player(fold_player), value(value) {}
 
   FoldNode(Action action, unsigned fold_player, double value, uint64_t hand_idx,
-           card_c board, vector<vector<double>> payoffs)
-      : action(action), fold_player(fold_player), value(value), hand_idx(hand_idx),
-        board(board), payoffs(payoffs) {}
+           card_c board)
+      : action(action), fold_player(fold_player), value(value),
+        hand_idx(hand_idx), board(board) {}
 
   virtual unsigned get_player() { return fold_player; }
   virtual bool is_terminal() { return true; }

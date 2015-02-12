@@ -168,39 +168,12 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
     card_c deck = bitset_to_deck(public_tree_cache[hands_idx], 52);
     auto ph =deck_to_combinations(game->numHoleCards, deck); 
 
-    for (unsigned i = 0; i < ph.size(); ++i) {
-      for (unsigned j = 0; j < ph.size(); ++j) {
-        if (i == j || do_intersect(ph[i], ph[j]))
-          continue;
-        if (!(state.playerFolded[0] || state.playerFolded[1])) {
-          hand_t hand({ph[i], ph[j]}, board);
-          // std::cout <<  ph[i].size() << "a\n";
-          evaluate(hand);
-          // std::cout << "b\n";
-          // possible_matchups
-          //possible_matchups.push_back({ph[i], ph[j]});
-          payoffs.push_back(
-              {(double)hand.value[0] * money, (double)hand.value[1] * money});
-
-          // std::cout << "b: " << board[0] << ", " << ph[i][0] << "," <<
-          // ph[j][0] << " = " << "[" <<
-          // payoffs[payoffs.size()-1][0] << "," << payoffs[payoffs.size()-1][1]
-          //<< "]\n";
-        } else {
-          payoffs.push_back({(fold_player == 0 ? -1.0 : 1.0) * money_f,
-                             (fold_player == 1 ? -1.0 : 1.0) * money_f});
-        }
-        // std::cout<< hand.value[0] * money << ", " << (double)hand.value[1]
-        //* money << "\n";
-        // std::cout << payoffs[payoffs.size()-1][0] << "\n";
-      }
-    }
     if (!(state.playerFolded[0] || state.playerFolded[1])) {
       // std::cout << money << std::endl;
-      return new ShowdownNode(action, money, hands_idx, board, payoffs);
+      return new ShowdownNode(action, money, hands_idx, board);
     } else {
       // std::cout << money_f << std::endl;
-      return new FoldNode(action, fold_player, money_f, hands_idx, board, payoffs);
+      return new FoldNode(action, fold_player, money_f, hands_idx, board);
     }
   }
 

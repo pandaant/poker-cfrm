@@ -275,10 +275,12 @@ std::vector<vector<double>> CFRM::br_terminal(INode *curr_node,
 
   if (curr_node->is_fold()) {
     FoldNode *node = (FoldNode *)curr_node;
+    int fold_player = node->fold_player;
     vector<vector<vector<int>>> possible_matchups;
     card_c deck = bitset_to_deck(game->public_tree_cache[node->hand_idx], 52);
     auto ph = deck_to_combinations(game->get_gamedef()->numHoleCards, deck);
     auto board = node->board;
+    int money_f = node->value;
 
     // for (unsigned player = 0; player < op.size(); ++player) {
     unsigned payoff_idx = 0;
@@ -287,6 +289,9 @@ std::vector<vector<double>> CFRM::br_terminal(INode *curr_node,
       for (unsigned j = 0; j < ph.size(); ++j) {
         if (i == j || game->do_intersect(ph[i], ph[j]))
           continue;
+
+          double payoff[2] = {(fold_player == 0 ? -1.0 : 1.0) * money_f,
+                             (fold_player == 1 ? -1.0 : 1.0) * money_f};
 
         unsigned idx_player_hand, idx_opp_hand;
         double player_prob = 1.0;
@@ -305,9 +310,9 @@ std::vector<vector<double>> CFRM::br_terminal(INode *curr_node,
         }
 
         payoffs[player][idx_player_hand] +=
-            opp_prob * node->payoffs[payoff_idx][player];
+            opp_prob * payoff[player];
         payoffs[opponent][idx_opp_hand] +=
-            player_prob * node->payoffs[payoff_idx][opponent];
+            player_prob * payoff[opponent];
         counts[player][idx_player_hand]++;
         counts[opponent][idx_opp_hand]++;
 
@@ -342,12 +347,18 @@ std::vector<vector<double>> CFRM::br_terminal(INode *curr_node,
   // std::cout << ph.size() << "\n";
   // for (unsigned player = 0; player < op.size(); ++player) {
   unsigned payoff_idx = 0;
+    int money = node->value;
   // vector<double> player_payoffs(op[player].size());
   // vector<unsigned> counts(op[player].size());
   for (unsigned i = 0; i < ph.size(); ++i) {
     for (unsigned j = 0; j < ph.size(); ++j) {
       if (i == j || game->do_intersect(ph[i], ph[j]))
         continue;
+
+          hand_t hand({ph[i], ph[j]}, node->board);
+          game->evaluate(hand);
+          double payoff[2] = {(double)hand.value[0] * money,
+                              (double)hand.value[1] * money};
 
       unsigned idx_player_hand, idx_opp_hand;
       double player_prob = 1.0;
@@ -366,9 +377,9 @@ std::vector<vector<double>> CFRM::br_terminal(INode *curr_node,
       }
 
       payoffs[player][idx_player_hand] +=
-          opp_prob * node->payoffs[payoff_idx][player];
+          opp_prob * payoff[player];
       payoffs[opponent][idx_opp_hand] +=
-          player_prob * node->payoffs[payoff_idx][opponent];
+          player_prob * payoff[opponent];
       counts[player][idx_player_hand]++;
       counts[opponent][idx_opp_hand]++;
 
