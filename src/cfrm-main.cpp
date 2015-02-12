@@ -88,13 +88,13 @@ int main(int argc, char **argv) {
   AbstractGame *game;
   switch (options.type) {
   case kuhn:
-    game = new KuhnGame(gamedef, card_abs, action_abs);
+    game = new KuhnGame(gamedef, card_abs, action_abs, options.nb_threads);
     break;
   case leduc:
-    game = new LeducGame(gamedef, card_abs, action_abs);
+    game = new LeducGame(gamedef, card_abs, action_abs, options.nb_threads);
     break;
   case holdem:
-    game = new HoldemGame(gamedef, card_abs, action_abs, handranks);
+    game = new HoldemGame(gamedef, card_abs, action_abs, handranks, options.nb_threads);
     break;
   };
 

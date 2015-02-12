@@ -44,7 +44,7 @@ struct {
   string hist_calc_board = "";
 
   int_c nb_buckets{169, 2, 2, 2};
-  int_c nb_samples{0, 9, 7, 9};
+  int_c nb_samples{0, 5, 5, 5};
   int_c num_history_points{0, 2, 2, 1};
   int_c nb_hist_samples_per_round{0, 8, 6, 9};
 

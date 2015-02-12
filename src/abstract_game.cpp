@@ -6,8 +6,8 @@
 
 AbstractGame::AbstractGame(const Game *game_definition,
                            CardAbstraction *card_abs,
-                           ActionAbstraction *action_abs)
-    : game(game_definition), card_abs(card_abs), action_abs(action_abs) {
+                           ActionAbstraction *action_abs, int nb_threads )
+    : game(game_definition), card_abs(card_abs), action_abs(action_abs), nb_threads(nb_threads) {
 
   uint64_t idx = 0, idi = 0;
   State initial_state;
@@ -123,6 +123,10 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
         deck.size(), game->numBoardCards[state.round], board);
     auto nb_combinations = combinations.size();
 
+    unsigned nb_active_threads = 0;
+    vector<std::thread> threadpool(nb_threads);
+    vector<INode*> children(nb_combinations);
+
     for (unsigned i = 0; i < nb_combinations; ++i) {
       card_c newboard(board);
       card_c newdeck(deck);
@@ -151,9 +155,27 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
       public_tree_cache[idx] = deck_to_bitset(newdeck);
     //std::cout << "idx("<<idx<<") = " << public_tree_cache[idx] << "\n";
 
-      c->children.push_back(init_public_tree(action, state, idx, newboard,
-                                             newdeck, game, idx));
+      if( state.round == 1 ){
+        threadpool[nb_active_threads] =
+            std::thread([i, action, &state, idx, newboard, newdeck, &game,
+                         &children, this] {
+              uint64_t ix = idx;
+              children[i] = init_public_tree(action, state, ix, newboard,
+                                             newdeck, game, ix);
+            });
+        nb_active_threads++;
+        if (nb_active_threads >= nb_threads || i == ( nb_combinations - 1)) {
+            for(unsigned t = 0; t < nb_threads; ++t)
+                threadpool[t].join();
+            nb_active_threads = 0;
+        }
+      } else {
+        children[i] =
+            init_public_tree(action, state, idx, newboard, newdeck, game, idx);
+      }
     }
+
+    c->children = children;
     return c;
   }
 
@@ -257,8 +279,8 @@ void AbstractGame::print_gamedef() { printGame(stdout, game); }
 
 // KUHN GAME
 KuhnGame::KuhnGame(const Game *game_definition, CardAbstraction *cabs,
-                   ActionAbstraction *aabs)
-    : AbstractGame(game_definition, cabs, aabs) {}
+                   ActionAbstraction *aabs, int nb_threads)
+    : AbstractGame(game_definition, cabs, aabs, nb_threads) {}
 
 void KuhnGame::evaluate(hand_t &hand) {
   // std::cout << hand.holes[0][0] << "/" << hand.holes[1][0] << "\n";
@@ -269,8 +291,8 @@ void KuhnGame::evaluate(hand_t &hand) {
 
 // LEDUC
 LeducGame::LeducGame(const Game *game_definition, CardAbstraction *cabs,
-                     ActionAbstraction *aabs)
-    : AbstractGame(game_definition, cabs, aabs) {}
+                     ActionAbstraction *aabs, int nb_threads)
+    : AbstractGame(game_definition, cabs, aabs,nb_threads) {}
 
 void LeducGame::evaluate(hand_t &hand) {
   int p1r = rank_hand(hand.holes[0][0], hand.board[0]);
@@ -298,8 +320,8 @@ int LeducGame::rank_hand(int hand, int board) {
 }
 
 HoldemGame::HoldemGame(const Game *game_definition, CardAbstraction *cabs,
-                       ActionAbstraction *aabs, ecalc::Handranks* hr )
-    : AbstractGame(game_definition, cabs, aabs), handranks(hr) {}
+                       ActionAbstraction *aabs, ecalc::Handranks* hr, int nb_threads )
+    : AbstractGame(game_definition, cabs, aabs, nb_threads), handranks(hr) {}
 
 void HoldemGame::evaluate(hand_t &hand) {
   using namespace ecalc;
