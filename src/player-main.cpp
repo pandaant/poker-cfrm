@@ -222,6 +222,7 @@ int parse_options(int argc, char **argv) {
         "set card abstraction to use")("action-abstraction,a",
                                        po::value<string>(),
                                        "set action abstraction to use")(
+        "card-abs-param,m", po::value<string>(&options.card_abs_param), "parameter for card abstraction")(
         "host,o", po::value<string>(&options.host), "host to connect to")(
         "port,p", po::value<unsigned>(&options.port), "port to connect to")(
         "init-stategy,i", po::value<string>(&options.init_strategy),
@@ -237,12 +238,16 @@ int parse_options(int argc, char **argv) {
       string ca = vm["card-abstraction"].as<string>();
       if (ca == "null")
         options.card_abs = NULLCARD_ABS;
+      else if (ca == "cluster")
+        options.card_abs = CLUSTERCARD_ABS;
     }
 
     if (vm.count("action-abstraction")) {
       string ca = vm["action-abstraction"].as<string>();
       if (ca == "null")
         options.action_abs = NULLACTION_ABS;
+      else if (ca == "potrel")
+        options.action_abs = POTRELACTION_ABS;
     }
 
     if (vm.count("help")) {
