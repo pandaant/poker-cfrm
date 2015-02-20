@@ -628,9 +628,11 @@ public:
 class PotentialAwareAbstractionGenerator : public AbstractionGenerator {
   std::vector<AbstractionGenerator *> generators;
   hand_indexer_t indexer[4];
+  int potentialround;
 
 public:
-  PotentialAwareAbstractionGenerator(std::ofstream &dump_to,
+  //potentialround is the round for which round +1 has to be calculated first.
+  PotentialAwareAbstractionGenerator(std::ofstream &dump_to, int potentialround,
                             std::vector<AbstractionGenerator *> generators);
 
   ~PotentialAwareAbstractionGenerator();
