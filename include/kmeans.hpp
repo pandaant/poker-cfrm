@@ -13,6 +13,7 @@
 #include "emd_hat.hpp"
 #include "definitions.hpp"
 
+//TODO rng einfuegen und epsilon eingestellbar machen
 
 typedef unsigned cluster_t;
 typedef double precision_t;
