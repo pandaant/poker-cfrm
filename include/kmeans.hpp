@@ -1,8 +1,6 @@
 #ifndef KMEANS_HPP
 #define KMEANS_HPP
 
-#define NULL 0
-
 #include <vector>
 #include <cstdlib>
 #include <math.h>
@@ -11,30 +9,39 @@
 #include <boost/random.hpp>
 #include <boost/random/mersenne_twister.hpp>
 
+#define NULL 0
 #include "emd_hat.hpp"
 #include "definitions.hpp"
 
-/*
-EXAMPLE FOR BASIC DATAPOINT STRUCTURE:
 
-struct datapoint {
-  double value;
-  unsigned cluster;
-};
-*/
+typedef unsigned cluster_t;
+typedef double precision_t;
+typedef std::vector<precision_t> histogram_t;
+typedef std::vector<histogram_t> histogram_c;
 
-static double l2_distance(dbl_c &hist_a, dbl_c &hist_b, int threads = 1){
-    double sum = 0;
-    for(unsigned i = 0; i < hist_a.size(); ++i){
-        sum += (hist_a[i] - hist_b[i]) * (hist_a[i] - hist_b[i]);
-    }
-   return sum; 
-}
+typedef struct {
+  cluster_t cluster;
+  histogram_t histogram;
+} datapoint_t;
 
-static std::vector<dbl_c> gen_cost_matrix(unsigned rows, unsigned cols) {
-  std::vector<dbl_c> cost_mat(rows, dbl_c(cols));
+typedef std::vector<datapoint_t> dataset_t;
 
-  int max_cost_mat = -1;
+//typedef struct emd_dist {
+  //std::vector<std::vector<precision_t>> cost_mat;
+
+  //emd_dist(unsigned features) { gen_cost_matrix(features, features, cost_mat); }
+
+  //precision_t distance(histogram_t &a, histogram_t &b, unsigned nb_elements) {
+    //return emd_hat<precision_t>()(a, b, cost_mat);
+  //}
+
+//};
+
+static void gen_cost_matrix(unsigned rows, unsigned cols,
+                            std::vector<std::vector<precision_t>> &cost_mat) {
+  cost_mat = std::vector<std::vector<precision_t>>(
+      rows, std::vector<precision_t>(cols));
+
   int j = -1;
   for (unsigned int c1 = 0; c1 < rows; ++c1) {
     ++j;
@@ -44,225 +51,112 @@ static std::vector<dbl_c> gen_cost_matrix(unsigned rows, unsigned cols) {
       cost_mat[i][j] = abs(i - j);
     }
   }
-  return cost_mat;
 }
 
-static double emd_distance(dbl_c &hist_a, dbl_c &hist_b,
-                           std::vector<dbl_c> cost_mat) {
-  return emd_hat<double>()(hist_a, hist_b, cost_mat);
+static precision_t emd_forwarder(histogram_t &a, histogram_t &b,
+                                 unsigned nb_elements, void *context) {
+
+  //static_cast<std::vector<std::vector<precision_t>> *>(context)->distance(a, b, nb_elements);
+    return emd_hat<precision_t>()(a, b, *static_cast<std::vector<std::vector<precision_t>> *>(context));
 }
 
-template <class DATAPOINT>
-void kmpp(std::vector<double> &centers, std::vector<DATAPOINT> &dataset, boost::mt19937 &rng) {
-  centers[0] = dataset[rand() % dataset.size()].value;
-  for (unsigned i = 1; i < centers.size(); ++i) {
-    std::vector<double> variance(
-        dataset.size()); // TODO das aus dem loop nehmen?
-    for (unsigned d = 0; d < dataset.size(); ++d) {
-      variance[d] = fabs(centers[i - 1] - dataset[d].value);
-      variance[d] *= variance[d];
-    }
-
-    boost::random::discrete_distribution<> dist(variance.begin(),
-                                                variance.end());
-    centers[i] = dataset[dist(rng)].value;
+static precision_t l2_distance(histogram_t &a, histogram_t &b,
+                               unsigned nb_elements, void *context = NULL) {
+  precision_t sum = 0;
+  for (unsigned i = 0; i < nb_elements; ++i) {
+    sum += (a[i] - b[i]) * (a[i] - b[i]);
   }
-  // centers[i] = dataset[rand() % dataset.size()].value;
+  return sqrt(sum);
 }
 
-template <class DATAPOINT>
-void kmpp_l2(std::vector<DATAPOINT> &centers, std::vector<DATAPOINT> &dataset, boost::mt19937 &rng,
-             unsigned nb_threads = 1) {
-  std::cout << "initializing clustering with kmeans++ ...";
+static void kmeans_center_init_random(cluster_t nb_center, histogram_c &center,
+                               dataset_t &dataset) {
+  size_t nb_data = dataset.size();
+  center.resize(nb_center);
 
-  size_t num_data = dataset.size();
-  size_t num_features = dataset[0].histogram.size();
-
-  int per_block = num_data / nb_threads;
-  std::vector<size_t> thread_block_size(nb_threads, per_block);
-  thread_block_size.back() += num_data - nb_threads * per_block;
-  std::vector<std::thread> eval_threads(nb_threads);
-  size_t accumulator;
-
-  centers[0] = dataset[rand() % num_data];
-  for (unsigned curr_center = 1; curr_center < centers.size(); ++curr_center) {
-    std::vector<double> variance(num_data); // TODO das aus dem loop nehmen?
-    accumulator = 0;
-
-    for (int t = 0; t < nb_threads; ++t) {
-      accumulator += thread_block_size[t];
-      eval_threads[t] =
-          std::thread([t, accumulator, &dataset, &thread_block_size,
-                      &centers, &rng, &curr_center, &num_data, &variance] {
-            for (size_t i = (accumulator - thread_block_size[t]);
-                 i < accumulator; ++i) {
-              if (t == 0 && i % 10000 == 0)
-                std::cout << "\r" << (int)(100 * (i / (1.0 * accumulator)))
-                          << "%" << std::flush;
-
-                variance[i] = l2_distance(centers[curr_center - 1].histogram,
-                                           dataset[i].histogram);
-                variance[i] *= variance[i];
-            }
-          });
-    }
-
-    for (int t = 0; t < nb_threads; ++t)
-      eval_threads[t].join();
-    std::cout << "\r100%\n";
-  std::cout << "done.\n";
-
-    boost::random::discrete_distribution<> dist(variance.begin(),
-                                                variance.end());
-    size_t choosen = dist(rng);
-    centers[curr_center] = dataset[choosen];
-    //std::cout << "center " << curr_center << " has distance " << fabs(variance[choosen])
-              //<< "\n";
-  }
-  // centers[i] = dataset[rand() % dataset.size()].value;
+  for (cluster_t i = 0; i < nb_center; i++)
+    center[i] = dataset[rand() % nb_data].histogram;
 }
 
-template <class DATAPOINT>
-void kmpp_emd(std::vector<DATAPOINT> &centers, std::vector<DATAPOINT> &dataset,
-              std::vector<dbl_c> cost_mat, boost::mt19937 &rng, unsigned nb_threads = 1) {
-  std::cout << "initializing clustering with kmeans++ ...";
-  //boost::mt19937 rng(time(0));
+static void kmeans_center_multiple_restarts(unsigned nb_restarts, cluster_t nb_center,
+                                     void (*center_init_f)(cluster_t,
+                                                           histogram_c &,
+                                                           dataset_t &),
+                                     histogram_c &center, dataset_t &dataset) {
+  std::vector<histogram_c> center_c(nb_restarts);
+  for (unsigned i = 0; i < nb_restarts; ++i)
+    center_init_f(nb_center, center_c[i], dataset);
 
-  size_t num_data = dataset.size();
-  size_t num_features = dataset[0].histogram.size();
-
-  int per_block = num_data / nb_threads;
-  std::vector<size_t> thread_block_size(nb_threads, per_block);
-  thread_block_size.back() += num_data - nb_threads * per_block;
-  std::vector<std::thread> eval_threads(nb_threads);
-  size_t accumulator;
-
-  centers[0] = dataset[rand() % num_data];
-  for (unsigned curr_center = 1; curr_center < centers.size(); ++curr_center) {
-    std::vector<double> variance(num_data); // TODO das aus dem loop nehmen?
-    accumulator = 0;
-
-    for (int t = 0; t < nb_threads; ++t) {
-      accumulator += thread_block_size[t];
-      eval_threads[t] =
-          std::thread([t, accumulator, &dataset, &thread_block_size,
-                      &centers, &cost_mat, &rng, &curr_center, &num_data, &variance] {
-            for (size_t i = (accumulator - thread_block_size[t]);
-                 i < accumulator; ++i) {
-              if (t == 0 && i % 10000 == 0)
-                std::cout << "\r" << curr_center << ": " << (int)(100 * (i / (1.0 * accumulator)))
-                          << "%" << std::flush;
-
-                variance[i] = emd_distance(centers[curr_center - 1].histogram,
-                                           dataset[i].histogram, cost_mat);
-                variance[i] *= variance[i];
-            }
-          });
-    }
-
-    for (int t = 0; t < nb_threads; ++t)
-      eval_threads[t].join();
-    std::cout << "\r" << curr_center << ": 100%\n";
-  //std::cout << "done.\n";
-
-    boost::random::discrete_distribution<> dist(variance.begin(),
-                                                variance.end());
-    size_t choosen = dist(rng);
-    centers[curr_center] = dataset[choosen];
-    //std::cout << "center " << curr_center << " has distance " << fabs(variance[choosen])
-              //<< "\n";
-  }
-  // centers[i] = dataset[rand() % dataset.size()].value;
-}
-
-// integrate multithreading TODO
-template <class DATAPOINT>
-void kmeans(unsigned nb_clusters, std::vector<DATAPOINT> &dataset, boost::mt19937 &rng,
-            double epsilon = 0.01) {
-  using std::vector;
-  vector<double> centers(nb_clusters);
-  kmpp(centers, dataset,rng);
-
-  unsigned changed;
-  do {
-    changed = 0;
-    for (unsigned i = 0; i < dataset.size(); ++i) {
-      vector<double> variance(nb_clusters);
-      unsigned curr_cluster = dataset[i].cluster;
-      for (unsigned b = 0; b < nb_clusters; ++b) {
-        variance[b] = fabs(dataset[i].value - centers[b]);
+  unsigned nb_features = dataset[0].histogram.size();
+  std::vector<double> cluster_dists(nb_restarts);
+  for (unsigned r = 0; r < nb_restarts; ++r) {
+    double sum = 0;
+    unsigned count = 0;
+    std::vector<double> distances(nb_center, 0);
+    for (unsigned i = 0; i < nb_center; ++i) {
+      for (unsigned j = 0; j < nb_center; ++j) {
+        if (j == i)
+          continue;
+        double dist = l2_distance(center_c[r][i], center_c[r][j], nb_features);
+        distances[i] += dist;
+        ++count;
       }
-
-      size_t min_cluster = std::distance(
-          variance.begin(), std::min_element(variance.begin(), variance.end()));
-      if (min_cluster != curr_cluster)
-        ++changed;
-      dataset[i].cluster = min_cluster;
+      sum += distances[i];
     }
-
-    vector<double> cluster_element_counter(nb_clusters, 0);
-    vector<double> cluster_element_sums(nb_clusters, 0);
-    for (unsigned i = 0; i < dataset.size(); ++i) {
-      cluster_element_sums[dataset[i].cluster] += dataset[i].value;
-      ++cluster_element_counter[dataset[i].cluster];
-    }
-    for (unsigned b = 0; b < nb_clusters; ++b) {
-      centers[b] = (1.0 / cluster_element_counter[b]) * cluster_element_sums[b];
-    }
-  } while ((1.0 * changed) / dataset.size() > epsilon);
+    cluster_dists[r] = sum / count;
+    // printf("restart:%u -> %f\n", r, cluster_dists[r]);
+  }
+  size_t max_cluster = std::distance(
+      cluster_dists.begin(),
+      std::max_element(cluster_dists.begin(), cluster_dists.end()));
+  // printf("min center index: %zu\n", max_cluster);
+  center = center_c[max_cluster];
 }
 
-template <class DATAPOINT>
-void kmeans_emd(unsigned nb_clusters, std::vector<DATAPOINT> &dataset, boost::mt19937 &rng,
-                unsigned nb_threads = 1, double epsilon = 0.01) {
-  using std::vector;
+static void
+kmeans(cluster_t nb_clusters, dataset_t &dataset,
+       precision_t (*distFunc)(histogram_t &, histogram_t &, unsigned, void *),
+       histogram_c &center, bool init_centers = true, unsigned nb_threads = 1,
+       precision_t epsilon = 0.01, void *context = NULL) {
+  size_t nb_data, nb_features, accumulator, per_block, changed, iter;
 
-  if (dataset.empty())
+  if (nb_clusters > dataset.size())
     return;
 
-  vector<DATAPOINT> centers(nb_clusters);
-  std::vector<dbl_c> cost_mat =
-      gen_cost_matrix(dataset[0].histogram.size(), dataset[0].histogram.size());
-  kmpp_emd(centers, dataset, cost_mat, rng, nb_threads);
+  if (init_centers) {
+    kmeans_center_init_random(nb_clusters, center, dataset);
+  }
 
-  size_t num_data = dataset.size();
-  size_t num_features = dataset[0].histogram.size();
-  //for (unsigned i = 0; i < nb_clusters; ++i)
-    //centers[i] = num_data > i ? dataset[i] : DATAPOINT();
+  iter = 0;
+  nb_data = dataset.size();
+  nb_features = dataset[0].histogram.size();
+  per_block = nb_data / nb_threads;
 
-  int per_block = num_data / nb_threads;
   std::vector<size_t> thread_block_size(nb_threads, per_block);
-  thread_block_size.back() += num_data - nb_threads * per_block;
+  thread_block_size.back() += nb_data - nb_threads * per_block;
   std::vector<std::thread> eval_threads(nb_threads);
-  size_t accumulator;
 
-  unsigned changed;
   do {
     changed = 0;
     accumulator = 0;
 
     for (int t = 0; t < nb_threads; ++t) {
       accumulator += thread_block_size[t];
-      // std::cout << "i am thread " << t << "\n";
-      // (t*thread_block_size[t]) << " to " << accumulator << "\n";
       eval_threads[t] =
           std::thread([t, accumulator, &dataset, &thread_block_size,
-                       &nb_clusters, &centers, &cost_mat, &changed] {
+                       &nb_clusters, &center, &changed, &distFunc, &nb_features,
+                       &context] {
+            cluster_t curr_cluster, min_cluster;
             for (size_t i = (accumulator - thread_block_size[t]);
                  i < accumulator; ++i) {
-              if (t == 0 && i % 10000 == 0)
-                std::cout << "\r" << (int)(100 * (i / (1.0 * accumulator)))
-                          << "%" << std::flush;
-              vector<double> variance(nb_clusters);
-              unsigned curr_cluster = dataset[i].cluster;
-              for (unsigned b = 0; b < nb_clusters; ++b) {
-                // variance[b] = fabs(emd_distance(
-                // dataset[i].histogram, centers[b].histogram, cost_mat));
-                variance[b] = emd_distance(dataset[i].histogram,
-                                           centers[b].histogram, cost_mat);
-              }
+              curr_cluster = dataset[i].cluster;
+              std::vector<precision_t> variance(nb_clusters);
 
-              size_t min_cluster = std::distance(
+              for (unsigned b = 0; b < nb_clusters; ++b)
+                variance[b] = (*distFunc)(dataset[i].histogram, center[b],
+                                          nb_features, context);
+
+              min_cluster = std::distance(
                   variance.begin(),
                   std::min_element(variance.begin(), variance.end()));
               if (min_cluster != curr_cluster)
@@ -274,137 +168,30 @@ void kmeans_emd(unsigned nb_clusters, std::vector<DATAPOINT> &dataset, boost::mt
 
     for (int t = 0; t < nb_threads; ++t)
       eval_threads[t].join();
-    std::cout << "\r100%\n";
 
-    // assign new center. element that has smallest mean distance to other
-    // elements in bucket
-    vector<double> cluster_element_counter(nb_clusters, 0);
-    vector<vector<double>> cluster_probability_mass(nb_clusters,
-                                                    dbl_c(num_features, 0));
-    vector<double> cluster_total_probability_mass(nb_clusters, 0);
-    for (unsigned i = 0; i < num_data; ++i) {
+    std::vector<precision_t> cluster_element_counter(nb_clusters, 0);
+    std::vector<std::vector<precision_t>> cluster_probability_mass(
+        nb_clusters, histogram_t(nb_features, 0));
+    for (unsigned i = 0; i < nb_data; ++i) {
       ++cluster_element_counter[dataset[i].cluster];
-      for (unsigned j = 0; j < num_features; ++j) {
+      for (unsigned j = 0; j < nb_features; ++j) {
         cluster_probability_mass[dataset[i].cluster][j] +=
             dataset[i].histogram[j];
-        cluster_total_probability_mass[dataset[i].cluster] +=
-            dataset[i].histogram[j]; // should always be 1
       }
     }
 
-    // calculate normalized new center from cluster mass
     for (unsigned i = 0; i < nb_clusters; ++i) {
-      // std::cout << "total mass of cluster " << i << ": " <<
-      // cluster_total_probability_mass[i] << "\n";
-      for (unsigned j = 0; j < num_features; ++j) {
-        // std::cout << "feature " << j << ": " <<
-        // cluster_probability_mass[i][j] << ", after: ";
-        if (cluster_total_probability_mass[i] > 0)
-          cluster_probability_mass[i][j] /= cluster_total_probability_mass[i];
-        // std::cout <<cluster_probability_mass[i][j] << "\n";
-      }
+      for (unsigned j = 0; j < nb_features; ++j)
+        if (cluster_probability_mass[i][j] > 0)
+          cluster_probability_mass[i][j] /= cluster_element_counter[i];
 
-      // assign new center to bucket i
-      centers[i] = DATAPOINT();
-      centers[i].histogram = cluster_probability_mass[i];
+      center[i] = cluster_probability_mass[i];
     }
 
-    std::cout << "changed: " << changed << "\n";
-  } while ((1.0 * changed) / dataset.size() > epsilon);
-}
-
-template <class DATAPOINT>
-void kmeans_l2(unsigned nb_clusters, std::vector<DATAPOINT> &dataset, boost::mt19937 &rng,
-                unsigned nb_threads = 1, double epsilon = 0.01) {
-  using std::vector;
-
-  if (dataset.empty())
-    return;
-
-  vector<DATAPOINT> centers(nb_clusters);
-  //std::vector<dbl_c> cost_mat =
-      //gen_cost_matrix(dataset[0].histogram.size(), dataset[0].histogram.size());
-  kmpp_l2(centers, dataset, rng, nb_threads);
-
-  size_t num_data = dataset.size();
-  size_t num_features = dataset[0].histogram.size();
-  //for (unsigned i = 0; i < nb_clusters; ++i)
-    //centers[i] = num_data > i ? dataset[i] : DATAPOINT();
-
-  int per_block = num_data / nb_threads;
-  std::vector<size_t> thread_block_size(nb_threads, per_block);
-  thread_block_size.back() += num_data - nb_threads * per_block;
-  std::vector<std::thread> eval_threads(nb_threads);
-  size_t accumulator;
-
-  unsigned changed;
-  do {
-    changed = 0;
-    accumulator = 0;
-
-    for (int t = 0; t < nb_threads; ++t) {
-      accumulator += thread_block_size[t];
-      // std::cout << "i am thread " << t << "\n";
-      // (t*thread_block_size[t]) << " to " << accumulator << "\n";
-      eval_threads[t] =
-          std::thread([t, accumulator, &dataset, &thread_block_size,
-                       &nb_clusters, &centers, &changed] {
-            for (size_t i = (accumulator - thread_block_size[t]);
-                 i < accumulator; ++i) {
-              if (t == 0 && i % 10000 == 0)
-                std::cout << "\r" << (int)(100 * (i / (1.0 * accumulator)))
-                          << "%" << std::flush;
-
-              vector<double> variance(nb_clusters);
-              unsigned curr_cluster = dataset[i].cluster;
-              for (unsigned b = 0; b < nb_clusters; ++b) {
-                variance[b] = l2_distance(dataset[i].histogram,
-                                           centers[b].histogram);
-              }
-
-              size_t min_cluster = std::distance(
-                  variance.begin(),
-                  std::min_element(variance.begin(), variance.end()));
-              if (min_cluster != curr_cluster)
-                ++changed;
-              dataset[i].cluster = min_cluster;
-            }
-          });
-    }
-
-    for (int t = 0; t < nb_threads; ++t)
-      eval_threads[t].join();
-    std::cout << "\r100%\n";
-
-    // assign new center. element that has smallest mean distance to other
-    // elements in bucket
-    vector<double> cluster_element_counter(nb_clusters, 0);
-    vector<vector<double>> cluster_probability_mass(nb_clusters,
-                                                    dbl_c(num_features, 0));
-    vector<double> cluster_total_probability_mass(nb_clusters, 0);
-    for (unsigned i = 0; i < num_data; ++i) {
-      ++cluster_element_counter[dataset[i].cluster];
-      for (unsigned j = 0; j < num_features; ++j) {
-        cluster_probability_mass[dataset[i].cluster][j] +=
-            dataset[i].histogram[j];
-        cluster_total_probability_mass[dataset[i].cluster] +=
-            dataset[i].histogram[j]; // should always be 1
-      }
-    }
-
-    // calculate normalized new center from cluster mass
-    for (unsigned i = 0; i < nb_clusters; ++i) {
-      for (unsigned j = 0; j < num_features; ++j) {
-        if (cluster_total_probability_mass[i] > 0)
-          cluster_probability_mass[i][j] /= cluster_total_probability_mass[i];
-      }
-
-      // assign new center to bucket i
-      centers[i] = DATAPOINT();
-      centers[i].histogram = cluster_probability_mass[i];
-    }
-    std::cout << "changed: " << changed << "\n";
-  } while ((1.0 * changed) / dataset.size() > epsilon);
+    ++iter;
+     printf("#%zu elements changed: %zu -> %f%%\n",iter, changed,
+     100 * ((1.0 * changed) / nb_data));
+  } while ((1.0 * changed) / nb_data > epsilon);
 }
 
 #endif

@@ -18,8 +18,45 @@ typedef struct {
 
 typedef std::vector<datapoint_t> dataset_t;
 
-static precision_t l2_distance(histogram_t &a, histogram_t &b,
+typedef struct emd{
+  std::vector<std::vector<precision_t>> cost_mat;
+
+  emd(unsigned features) { gen_cost_matrix(features, features, cost_mat); }
+
+precision_t distance(histogram_t &a, histogram_t &b,
                                unsigned nb_elements) {
+  precision_t sum = 0;
+  for (unsigned i = 0; i < nb_elements; ++i) {
+    sum += (a[i] - b[i]) * (a[i] - b[i]);
+  }
+  return sqrt(sum);
+}
+
+  void gen_cost_matrix(unsigned rows, unsigned cols,
+                       std::vector<std::vector<precision_t>> &cost_mat) {
+    cost_mat = std::vector<std::vector<precision_t>>(
+        rows, std::vector<precision_t>(cols));
+
+    int j = -1;
+    for (unsigned int c1 = 0; c1 < rows; ++c1) {
+      ++j;
+      int i = -1;
+      for (unsigned int c2 = 0; c2 < cols; ++c2) {
+        ++i;
+        cost_mat[i][j] = abs(i - j);
+      }
+    }
+  }
+
+};
+
+static precision_t emd_forwarder(histogram_t &a, histogram_t &b, unsigned nb_elements,
+                     void *context) {
+    return static_cast<emd*>(context)->distance(a,b,nb_elements);
+}
+
+static precision_t l2_distance(histogram_t &a, histogram_t &b,
+                               unsigned nb_elements,void* context = NULL) {
   precision_t sum = 0;
   for (unsigned i = 0; i < nb_elements; ++i) {
     sum += (a[i] - b[i]) * (a[i] - b[i]);
@@ -72,9 +109,9 @@ void kmeans_center_multiple_restarts(unsigned nb_restarts, cluster_t nb_center,
 }
 
 void kmeans(cluster_t nb_clusters, dataset_t &dataset,
-            precision_t (*distFunc)(histogram_t &, histogram_t &, unsigned),
+            precision_t (*distFunc)(histogram_t &, histogram_t &, unsigned,void*),
             histogram_c &center, bool init_centers = true,
-            unsigned nb_threads = 1, precision_t epsilon = 0.01) {
+            unsigned nb_threads = 1, precision_t epsilon = 0.01, void* context = NULL) {
   size_t nb_data, nb_features, accumulator, per_block, changed, iter;
 
   if (nb_clusters > dataset.size())
@@ -101,7 +138,7 @@ void kmeans(cluster_t nb_clusters, dataset_t &dataset,
       accumulator += thread_block_size[t];
       eval_threads[t] = std::thread([t, accumulator, &dataset,
                                      &thread_block_size, &nb_clusters, &center,
-                                     &changed, &distFunc, &nb_features] {
+                                     &changed, &distFunc, &nb_features, &context] {
         cluster_t curr_cluster, min_cluster;
         for (size_t i = (accumulator - thread_block_size[t]); i < accumulator;
              ++i) {
@@ -110,7 +147,7 @@ void kmeans(cluster_t nb_clusters, dataset_t &dataset,
 
           for (unsigned b = 0; b < nb_clusters; ++b)
             variance[b] =
-                (*distFunc)(dataset[i].histogram, center[b], nb_features);
+                (*distFunc)(dataset[i].histogram, center[b], nb_features,context);
 
           min_cluster =
               std::distance(variance.begin(),
@@ -153,9 +190,9 @@ void kmeans(cluster_t nb_clusters, dataset_t &dataset,
 int main() {
   srand(100000);
 
-  size_t clusters = 100;
-  size_t nb_data = 1000000;
-  size_t nb_features = 8;
+  size_t clusters = 10;
+  size_t nb_data = 10000;
+  size_t nb_features = 2;
 
   dataset_t dataset(nb_data);
   for (unsigned i = 0; i < nb_data; ++i) {
@@ -171,12 +208,13 @@ int main() {
     }
   }
 
+
   // printf("%f\n",l2_distance(dataset[0].histogram, dataset[1].histogram,3));
 
   histogram_c center;
   unsigned restarts = 100;
   //kmeans_center_multiple_restarts(restarts, clusters, kmeans_center_init_random, center, dataset);
-   kmeans(clusters, dataset, l2_distance, center, true,6,0.01);
+   kmeans(clusters, dataset, emd_forwarder, center, true,1,0.01,&t);
 
    printf("centers:\n");
    for (size_t i = 0; i < clusters; ++i) {

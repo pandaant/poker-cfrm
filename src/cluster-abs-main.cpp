@@ -3,12 +3,14 @@
 #include <thread>
 #include <iomanip>
 #include <fstream>
+#include <vector>
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <ecalc/handranks.hpp>
 
 #include "definitions.hpp"
 #include "abstraction_generator.hpp"
+#include "kmeans.hpp"
 
 using std::cout;
 using std::string;
@@ -43,12 +45,12 @@ struct {
   string print_hand_ochs = "";
   string hist_calc_board = "";
 
-  int_c nb_buckets{169, 2, 2, 2};
-  int_c nb_samples{0, 5, 5, 5};
-  int_c num_history_points{0, 2, 2, 1};
-  int_c nb_hist_samples_per_round{0, 8, 6, 9};
+  int_c nb_buckets{169, 10, 1, 1};
+  int_c nb_samples{0, 10, 1, 1};
+  int_c num_history_points{0, 4, 1, 1};
+  int_c nb_hist_samples_per_round{0, 100, 1, 1};
 
-  metric_t metric = EMD;
+  metric_t metric = MIXED_NEES;
 } options;
 
 const Game *gamedef;

@@ -74,7 +74,6 @@ PotentialAwareAbstractionGenerator::~PotentialAwareAbstractionGenerator() {}
 
 // calculate rounds backwards to be able to cluster with data of a later round
 void PotentialAwareAbstractionGenerator::generate(nbgen &rng) {
-    std::vector<DATAPOINT> centers;
   for (unsigned i = generators.size()-1; i >= 0 ; --i) {
     auto start = ch::steady_clock::now();
     if( potentialround == i ){
