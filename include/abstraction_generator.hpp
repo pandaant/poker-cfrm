@@ -457,7 +457,7 @@ public:
     size_t round_size = indexer[round].round_size[(round == 0) ? 0 : 1];
     std::cout << "evaluating round " << round << " holdings.\n";
 
-    std::vector<ochs_feature> ochs_hands(indexer[0].round_size[0]);
+    std::vector<datapoint_t> ochs_hands(indexer[0].round_size[0]);
     std::cout << "generating " << num_opponent_clusters[round]
               << " opponent clusters\n";
     uint8_t cards[7];
@@ -465,15 +465,21 @@ public:
     for (unsigned i = 0; i < indexer[0].round_size[0]; ++i) {
       hand_unindex(&indexer[0], 0, i, cards);
       handlist.set_hand(poker::Hand(cards[0] + 1, cards[1] + 1));
-      ochs_hands[i].value =
-          calc[0]
-              ->evaluate_vs_random(&handlist, 1, {}, {}, 10000)[0]
-              .pwin_tie();
+      ochs_hands[i].histogram = histogram_t(
+          1, calc[0]
+                 ->evaluate_vs_random(&handlist, 1, {}, {}, 10000)[0]
+                 .pwin_tie());
     }
 
       unsigned buckets_empty = 0;
     do {
       //kmeans(num_opponent_clusters[round], ochs_hands, clusterrng);
+      histogram_c center;
+      unsigned restarts = 100;
+      kmeans_center_multiple_restarts(
+          restarts, num_opponent_clusters[round], kmeans_center_init_random, center, ochs_hands);
+      unsigned nb_features = ochs_hands[0].histogram.size();
+      kmeans(num_opponent_clusters[round], ochs_hands, l2_distance, center, false, nb_threads, 0.005);
       std::vector<unsigned> elem_buckets(num_opponent_clusters[round], 0);
       for(unsigned x = 0; x < ochs_hands.size(); ++x){
        elem_buckets[ochs_hands[x].cluster]++; 
@@ -495,7 +501,6 @@ public:
           poker::Hand(cards[0] + 1, cards[1] + 1));
     }
 
-    //TODO es muss sichergestellt sein, dass kein opp cluster leer ist !!
     for (unsigned i = 0; i < opp_range.size(); ++i) {
       opp_clusters[i] = new ecalc::ArrayHandlist(opp_range[i]);
       std::cout << "opp cluster " << i << ": " << opp_range[i].size()
@@ -507,9 +512,9 @@ public:
     }
 
     // main calculation
-    std::vector<hand_feature> features(round_size);
+    std::vector<datapoint_t> features(round_size);
     for (size_t i = 0; i < round_size; ++i) {
-      features[i].histogram = dbl_c(num_opponent_clusters[round]);
+      features[i].histogram = histogram_t(num_opponent_clusters[round]);
     }
 
     int per_block = round_size / nb_threads;
@@ -585,6 +590,11 @@ public:
     std::cout << "clustering " << round_size << " holdings into "
               << nb_buckets[round] << " buckets...\n";
     //kmeans_l2(nb_buckets[round], features, clusterrng,  nb_threads);
+      histogram_c center;
+      unsigned restarts = 100;
+      kmeans_center_multiple_restarts(
+          restarts, nb_buckets[round], kmeans_center_init_random, center, features);
+      kmeans(nb_buckets[round], features, l2_distance, center, false, nb_threads, 0.005);
         dump_to->write(reinterpret_cast<const char *>(&round),
 
                        sizeof(round));

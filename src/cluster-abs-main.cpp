@@ -45,12 +45,12 @@ struct {
   string print_hand_ochs = "";
   string hist_calc_board = "";
 
-  int_c nb_buckets{169, 10, 1, 1};
-  int_c nb_samples{0, 10, 1, 1};
-  int_c num_history_points{0, 4, 1, 1};
-  int_c nb_hist_samples_per_round{0, 100, 1, 1};
+  int_c nb_buckets{169, 1000, 1, 1};
+  int_c nb_samples{0, 1000, 1, 1};
+  int_c num_history_points{0, 8, 1, 1};
+  int_c nb_hist_samples_per_round{0, 500, 1, 1};
 
-  metric_t metric = MIXED_NEES;
+  metric_t metric = MIXED_NOOO;
 } options;
 
 const Game *gamedef;
