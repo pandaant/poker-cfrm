@@ -125,8 +125,8 @@ public:
       histogram_c center;
       unsigned restarts = 100;
       kmeans_center_multiple_restarts(
-          restarts, nb_buckets[round], kmeans_center_init_random, center, features);
-      kmeans(nb_buckets[round], features, l2_distance, center, false, nb_threads, 0.0005);
+          restarts, nb_buckets[round], kmeans_center_init_random, center, features,rng);
+      kmeans(nb_buckets[round], features, l2_distance, center, nb_threads, 0.0005);
 
         std::cout << "writing abstraction for round to file...\n";
         dump_to->write(reinterpret_cast<const char *>(&round),
@@ -304,11 +304,11 @@ public:
       histogram_c center;
       unsigned restarts = 100;
       kmeans_center_multiple_restarts(
-          restarts, nb_buckets[round], kmeans_center_init_random, center, features);
+          restarts, nb_buckets[round], kmeans_center_init_random, center, features,rng);
       unsigned nb_features = features[0].histogram.size();
       std::vector<std::vector<precision_t>> cost_mat;
       gen_cost_matrix(nb_features,nb_features, cost_mat);
-      kmeans(nb_buckets[round], features, emd_forwarder, center, false, nb_threads, 0.0005,&cost_mat);
+      kmeans(nb_buckets[round], features, emd_forwarder, center, nb_threads, 0.0005,&cost_mat);
 
     std::cout << "writing abstraction for round to file...\n";
         dump_to->write(reinterpret_cast<const char *>(&round),
@@ -477,9 +477,9 @@ public:
       histogram_c center;
       unsigned restarts = 100;
       kmeans_center_multiple_restarts(
-          restarts, num_opponent_clusters[round], kmeans_center_init_random, center, ochs_hands);
+          restarts, num_opponent_clusters[round], kmeans_center_init_random, center, ochs_hands,rng);
       unsigned nb_features = ochs_hands[0].histogram.size();
-      kmeans(num_opponent_clusters[round], ochs_hands, l2_distance, center, false, nb_threads, 0.005);
+      kmeans(num_opponent_clusters[round], ochs_hands, l2_distance, center, nb_threads, 0.005);
       std::vector<unsigned> elem_buckets(num_opponent_clusters[round], 0);
       for(unsigned x = 0; x < ochs_hands.size(); ++x){
        elem_buckets[ochs_hands[x].cluster]++; 
@@ -593,8 +593,8 @@ public:
       histogram_c center;
       unsigned restarts = 100;
       kmeans_center_multiple_restarts(
-          restarts, nb_buckets[round], kmeans_center_init_random, center, features);
-      kmeans(nb_buckets[round], features, l2_distance, center, false, nb_threads, 0.005);
+          restarts, nb_buckets[round], kmeans_center_init_random, center, features,rng);
+      kmeans(nb_buckets[round], features, l2_distance, center, nb_threads, 0.005);
         dump_to->write(reinterpret_cast<const char *>(&round),
 
                        sizeof(round));

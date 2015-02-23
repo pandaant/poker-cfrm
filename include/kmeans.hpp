@@ -71,22 +71,22 @@ static precision_t l2_distance(histogram_t &a, histogram_t &b,
 }
 
 static void kmeans_center_init_random(cluster_t nb_center, histogram_c &center,
-                               dataset_t &dataset) {
+                               dataset_t &dataset, nbgen &rng) {
   size_t nb_data = dataset.size();
   center.resize(nb_center);
 
   for (cluster_t i = 0; i < nb_center; i++)
-    center[i] = dataset[rand() % nb_data].histogram;
+    center[i] = dataset[rng() % nb_data].histogram;
 }
 
 static void kmeans_center_multiple_restarts(unsigned nb_restarts, cluster_t nb_center,
                                      void (*center_init_f)(cluster_t,
                                                            histogram_c &,
-                                                           dataset_t &),
-                                     histogram_c &center, dataset_t &dataset) {
+                                                           dataset_t &,nbgen &),
+                                     histogram_c &center, dataset_t &dataset, nbgen &rng) {
   std::vector<histogram_c> center_c(nb_restarts);
   for (unsigned i = 0; i < nb_restarts; ++i)
-    center_init_f(nb_center, center_c[i], dataset);
+    center_init_f(nb_center, center_c[i], dataset,rng);
 
   unsigned nb_features = dataset[0].histogram.size();
   std::vector<double> cluster_dists(nb_restarts);
@@ -114,19 +114,16 @@ static void kmeans_center_multiple_restarts(unsigned nb_restarts, cluster_t nb_c
   center = center_c[max_cluster];
 }
 
+// center have to be initialized before calling this function.
 static void
 kmeans(cluster_t nb_clusters, dataset_t &dataset,
        precision_t (*distFunc)(histogram_t &, histogram_t &, unsigned, void *),
-       histogram_c &center, bool init_centers = true, unsigned nb_threads = 1,
+       histogram_c &center, unsigned nb_threads = 1,
        precision_t epsilon = 0.01, void *context = NULL) {
   size_t nb_data, nb_features, accumulator, per_block, changed, iter;
 
   if (nb_clusters > dataset.size())
     return;
-
-  if (init_centers) {
-    kmeans_center_init_random(nb_clusters, center, dataset);
-  }
 
   iter = 0;
   nb_data = dataset.size();

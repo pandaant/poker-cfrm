@@ -152,8 +152,12 @@ int main(int argc, char **argv) {
     }
 
     if (options.dump_strategy != "") {
-      cout << "Saving current strategy...";
-      cfr->dump((char *)options.dump_strategy.c_str());
+      size_t iter_cnt_sum = 0;
+      for (unsigned i = 0; i < iter_threads_cnt.size(); ++i)
+        iter_cnt_sum += iter_threads_cnt[i];
+      std::string checkfile = options.dump_strategy + "." + comma_format(iter_cnt_sum) + "it" ;
+      cout << "Saving current strategy to" << checkfile << "...\n";
+      cfr->dump((char *)checkfile.c_str());
     }
     pause_threads = false;
     checkpoint_start = ch::steady_clock::now();
