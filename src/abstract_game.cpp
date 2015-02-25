@@ -37,10 +37,15 @@ INode *AbstractGame::init_game_tree(Action action, State &state,
 
   std::vector<Action> actions = action_abs->get_actions(game, state);
   std::vector<INode *> children(actions.size());
+  //std::cout << "pot: " << state.spent[0]+state.spent[1] << "\t nb_actions: " << actions.size() << "\n";
   for (int c = 0; c < actions.size(); ++c) {
     State new_state(state);
     doAction(game, &actions[c], &new_state);
+    //std::cout << actions[c].type << ":" << actions[c].size
+              //<< ", newpot: " << new_state.spent[0] << " + " <<  new_state.spent[1] << "=" << (new_state.spent[0] + new_state.spent[1])
+              //<< "\n";
     children[c] = init_game_tree(actions[c], new_state, game, idx);
+    //std::cout << "--\n";
   }
 
   uint64_t info_idx = idx++;

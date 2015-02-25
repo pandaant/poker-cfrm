@@ -2,6 +2,9 @@
 #define MAIN_FUNCTIONS_HPP
 
 #include <cstdlib>
+#include <string>
+#include "card_abstraction.hpp"
+#include "action_abstraction.hpp"
 
 std::vector<std::string> &split(const std::string &s, char delim,
                                 std::vector<std::string> &elems) {
@@ -17,6 +20,14 @@ std::vector<std::string> split(const std::string &s, char delim) {
   std::vector<std::string> elems;
   split(s, delim, elems);
   return elems;
+}
+
+std::vector<int> str_to_int_list(const std::string &s, char delim) {
+  std::vector<std::string> elems = split(s, delim);
+  std::vector<int> us(elems.size());
+  for(unsigned i = 0; i < elems.size(); ++i)
+      us[i] = atoi(elems[i].c_str());
+  return us;
 }
 
 std::vector<double> str_to_dbl_list(const std::string &s, char delim) {

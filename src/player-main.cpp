@@ -4,6 +4,7 @@
 #include <boost/program_options.hpp>
 #include "cfrm.hpp"
 #include "functions.hpp"
+#include "main_functions.hpp"
 
 extern "C" {
 #include "net.h"
@@ -57,29 +58,18 @@ int main(int argc, char **argv) {
 
   CardAbstraction *cardabs;
   ActionAbstraction *actionabs;
-  switch (options.card_abs) {
-  case NULLCARD_ABS:
-    cardabs = new NullCardAbstraction(gamedef, "");
-    break;
-  case BLINDCARD_ABS:
-    cardabs = new BlindCardAbstraction(gamedef, "");
-    break;
-  case CLUSTERCARD_ABS:
-    cardabs = new ClusterCardAbstraction(gamedef, "");
-    break;
-  default:
-    return NULL;
-    // throw
-  };
 
-  switch (options.action_abs) {
-  case NULLACTION_ABS:
-    actionabs = new NullActionAbstraction(gamedef,"");
-    break;
-  default:
-    // throw
-    return NULL;
-  };
+  cout << "using information abstraction type: "
+       << card_abstraction_str[options.card_abs]
+       << " with parameter: " << options.card_abs_param << "\n";
+  CardAbstraction *card_abs =
+      load_card_abstraction(gamedef, options.card_abs, options.card_abs_param);
+
+  cout << "using action abstraction type: "
+       << action_abstraction_str[options.action_abs]
+       << " with parameter: " << options.action_abs_param << "\n";
+  ActionAbstraction *action_abs = load_action_abstraction(
+      gamedef, options.action_abs, options.action_abs_param);
 
   AbstractGame *agame = new HoldemGame(gamedef, cardabs, actionabs, NULL);
   CFRM *cfr =

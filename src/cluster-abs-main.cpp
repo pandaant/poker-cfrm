@@ -11,6 +11,7 @@
 #include "definitions.hpp"
 #include "abstraction_generator.hpp"
 #include "kmeans.hpp"
+#include "main_functions.hpp"
 
 using std::cout;
 using std::string;
@@ -180,12 +181,40 @@ int parse_options(int argc, char **argv) {
         "set seed to use. default: current time")(
         "metric,m", po::value<string>(),
         "metric to use for clustering (ehs,emd)")(
+        "buckets,b", po::value<string>(),
+        "list of how many buckets to use per round. example: 10,10,10,10")(
+        "history-points", po::value<string>(),
+        "list of how many dimensions a datapoint has per round (if emd or ochs is used). example: 10,10,10,10")(
+        "nb-hist-samples-per-round", po::value<string>(),
+        "list of how many samples are taken to calculate the estimator for a hand (emd or ochs metrics). example: 10,10,10,10")(
+        "nb-samples", po::value<string>(),
+        "list of how many samples to take for a e[hs^n] value per round. example: 10,10,10,10")(
         "handranks", po::value<string>(&options.handranks_path),
         "path to handranks file. (if not installed)");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
+
+    if (vm.count("buckets")) {
+        std::cout << "number of buckets per round set to: " << vm["buckets"].as<string>() << "\n";
+        options.nb_buckets = str_to_int_list(vm["buckets"].as<string>(), ',');
+    }
+
+    if (vm.count("history-points")) {
+        std::cout << "number of history-points per round set to: " << vm["history-points"].as<string>() << "\n";
+        options.num_history_points = str_to_int_list(vm["history-points"].as<string>(), ',');
+    }
+
+    if (vm.count("nb-hist-samples-per-round")) {
+        std::cout << "number of hist-samples-per-round per round set to: " << vm["nb-hist-samples-per-round"].as<string>() << "\n";
+        options.nb_hist_samples_per_round = str_to_int_list(vm["nb-hist-samples-per-round"].as<string>(), ',');
+    }
+
+    if (vm.count("nb-samples")) {
+        std::cout << "number of samples per round set to: " << vm["nb-samples"].as<string>() << "\n";
+        options.nb_samples = str_to_int_list(vm["nb-samples"].as<string>(), ',');
+    }
 
     if (vm.count("metric")) {
       string ca = vm["metric"].as<string>();
