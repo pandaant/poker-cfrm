@@ -45,8 +45,8 @@ struct {
   string print_hand_ochs = "";
   string hist_calc_board = "";
 
-  int_c nb_buckets{169, 100, 1, 1};
-  int_c nb_samples{0, 100, 1, 1};
+  int_c nb_buckets{5, 5, 5, 5};
+  int_c nb_samples{0, 100, 100, 100};
   int_c num_history_points{0, 8, 1, 1};
   int_c nb_hist_samples_per_round{0, 500, 1, 1};
 

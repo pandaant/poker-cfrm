@@ -13,7 +13,7 @@
 #include "emd_hat.hpp"
 #include "definitions.hpp"
 
-//TODO rng einfuegen und epsilon eingestellbar machen
+// TODO rng einfuegen und epsilon eingestellbar machen
 
 typedef unsigned cluster_t;
 typedef double precision_t;
@@ -26,17 +26,6 @@ typedef struct {
 } datapoint_t;
 
 typedef std::vector<datapoint_t> dataset_t;
-
-//typedef struct emd_dist {
-  //std::vector<std::vector<precision_t>> cost_mat;
-
-  //emd_dist(unsigned features) { gen_cost_matrix(features, features, cost_mat); }
-
-  //precision_t distance(histogram_t &a, histogram_t &b, unsigned nb_elements) {
-    //return emd_hat<precision_t>()(a, b, cost_mat);
-  //}
-
-//};
 
 static void gen_cost_matrix(unsigned rows, unsigned cols,
                             std::vector<std::vector<precision_t>> &cost_mat) {
@@ -56,9 +45,8 @@ static void gen_cost_matrix(unsigned rows, unsigned cols,
 
 static precision_t emd_forwarder(histogram_t &a, histogram_t &b,
                                  unsigned nb_elements, void *context) {
-
-  //static_cast<std::vector<std::vector<precision_t>> *>(context)->distance(a, b, nb_elements);
-    return emd_hat<precision_t>()(a, b, *static_cast<std::vector<std::vector<precision_t>> *>(context));
+  return emd_hat<precision_t>()(
+      a, b, *static_cast<std::vector<std::vector<precision_t>> *>(context));
 }
 
 static precision_t l2_distance(histogram_t &a, histogram_t &b,
@@ -71,7 +59,7 @@ static precision_t l2_distance(histogram_t &a, histogram_t &b,
 }
 
 static void kmeans_center_init_random(cluster_t nb_center, histogram_c &center,
-                               dataset_t &dataset, nbgen &rng) {
+                                      dataset_t &dataset, nbgen &rng) {
   size_t nb_data = dataset.size();
   center.resize(nb_center);
 
@@ -79,14 +67,13 @@ static void kmeans_center_init_random(cluster_t nb_center, histogram_c &center,
     center[i] = dataset[rng() % nb_data].histogram;
 }
 
-static void kmeans_center_multiple_restarts(unsigned nb_restarts, cluster_t nb_center,
-                                     void (*center_init_f)(cluster_t,
-                                                           histogram_c &,
-                                                           dataset_t &,nbgen &),
-                                     histogram_c &center, dataset_t &dataset, nbgen &rng) {
+static void kmeans_center_multiple_restarts(
+    unsigned nb_restarts, cluster_t nb_center,
+    void (*center_init_f)(cluster_t, histogram_c &, dataset_t &, nbgen &),
+    histogram_c &center, dataset_t &dataset, nbgen &rng) {
   std::vector<histogram_c> center_c(nb_restarts);
   for (unsigned i = 0; i < nb_restarts; ++i)
-    center_init_f(nb_center, center_c[i], dataset,rng);
+    center_init_f(nb_center, center_c[i], dataset, rng);
 
   unsigned nb_features = dataset[0].histogram.size();
   std::vector<double> cluster_dists(nb_restarts);
@@ -115,11 +102,11 @@ static void kmeans_center_multiple_restarts(unsigned nb_restarts, cluster_t nb_c
 }
 
 // center have to be initialized before calling this function.
-static void
-kmeans(cluster_t nb_clusters, dataset_t &dataset,
-       precision_t (*distFunc)(histogram_t &, histogram_t &, unsigned, void *),
-       histogram_c &center, unsigned nb_threads = 1,
-       precision_t epsilon = 0.01, void *context = NULL) {
+static void kmeans(cluster_t nb_clusters, dataset_t &dataset,
+                   precision_t (*distFunc)(histogram_t &, histogram_t &,
+                                           unsigned, void *),
+                   histogram_c &center, unsigned nb_threads = 1,
+                   precision_t epsilon = 0.01, void *context = NULL) {
   size_t nb_data, nb_features, accumulator, per_block, changed, iter;
 
   if (nb_clusters > dataset.size())
@@ -187,8 +174,8 @@ kmeans(cluster_t nb_clusters, dataset_t &dataset,
     }
 
     ++iter;
-     printf("#%zu elements changed: %zu -> %f%%\n",iter, changed,
-     100 * ((1.0 * changed) / nb_data));
+    printf("#%zu elements changed: %zu -> %f%%\n", iter, changed,
+           100 * ((1.0 * changed) / nb_data));
   } while ((1.0 * changed) / nb_data > epsilon);
 }
 

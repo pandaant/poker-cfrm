@@ -85,6 +85,11 @@ int main(int argc, char **argv) {
   ActionAbstraction *action_abs = load_action_abstraction(
       gamedef, options.action_abs, options.action_abs_param);
 
+  // if the choosen action abstraction produces a file that is to be used when loading 
+  // the strategy by the player it will be created here
+  if (options.dump_strategy != "")
+    action_abs->dump(options.dump_strategy);
+
   AbstractGame *game;
   switch (options.type) {
   case kuhn:
@@ -155,7 +160,7 @@ int main(int argc, char **argv) {
       size_t iter_cnt_sum = 0;
       for (unsigned i = 0; i < iter_threads_cnt.size(); ++i)
         iter_cnt_sum += iter_threads_cnt[i];
-      std::string checkfile = options.dump_strategy + "." + comma_format(iter_cnt_sum) + "it" ;
+      std::string checkfile = options.dump_strategy; //+ "." + comma_format(iter_cnt_sum) + "it" ;
       cout << "Saving current strategy to" << checkfile << "...\n";
       cfr->dump((char *)checkfile.c_str());
     }
