@@ -80,15 +80,22 @@ int main(int argc, char **argv) {
   cout << "reading gamedefinition from: " << options.game_definition << "\n";
   read_game((char *)options.game_definition.c_str());
 
+  cout << "using information abstraction type: "
+       << card_abstraction_str[options.card_abs]
+       << " with parameter: " << options.card_abs_param << "\n";
   CardAbstraction *card_abs =
       load_card_abstraction(gamedef, options.card_abs, options.card_abs_param);
+
+  cout << "using action abstraction type: "
+       << action_abstraction_str[options.action_abs]
+       << " with parameter: " << options.action_abs_param << "\n";
   ActionAbstraction *action_abs = load_action_abstraction(
       gamedef, options.action_abs, options.action_abs_param);
 
   // if the choosen action abstraction produces a file that is to be used when loading 
   // the strategy by the player it will be created here
-  if (options.dump_strategy != "")
-    action_abs->dump(options.dump_strategy);
+  //if (options.dump_strategy != "")
+    //action_abs->dump(options.dump_strategy);
 
   AbstractGame *game;
   switch (options.type) {
@@ -110,6 +117,10 @@ int main(int argc, char **argv) {
     std::cout << "Initializing tree with " << options.init_strategy << "\n";
     cfr = new CFR_SAMPLER(game, (char *)options.init_strategy.c_str());
   }
+
+  std::cout << "Game tree size: " << cfr->count_bytes(game->game_tree_root()) /
+                                         1024 << " kb\n";
+
 
   auto runtime = ch::milliseconds((int)(options.runtime * 1000));
   auto checkpoint_time =
@@ -178,10 +189,6 @@ int main(int argc, char **argv) {
   for (unsigned i = 0; i < iter_threads_cnt.size(); ++i)
     iter_cnt_sum += iter_threads_cnt[i];
   std::cout << "#iterations: " << comma_format(iter_cnt_sum) << "\n";
-
-   //std::cout << "Game tree size: " << cfr->count_bytes(game->game_tree_root())
-   ///
-   //1024 << " kb\n";
    //std::cout << "Public tree size: "
   //<< cfr->count_bytes(game->public_tree_root()) / 1024 << " kb\n";
 

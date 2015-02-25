@@ -16,13 +16,17 @@ enum game_t { kuhn, leduc, holdem };
 
 enum action_abstraction { NULLACTION_ABS, POTRELACTION_ABS };
 
+static const char *action_abstraction_str[] = {"NULL", "POTREL"};
+
 enum card_abstraction {
   CLUSTERCARD_ABS,
   NULLCARD_ABS,
   BLINDCARD_ABS
 };
 
-const int MAX_ABSTRACT_ACTIONS = 6;
+static const char *card_abstraction_str[] = {"CLUSTER", "NULL", "BLIND"};
+
+const int MAX_ABSTRACT_ACTIONS = 20;
 
 const double DOUBLE_MAX = std::numeric_limits<double>::max();
 
