@@ -38,6 +38,7 @@ struct {
   size_t seed = time(NULL);
 
   double runtime = 50;
+  size_t nb_target_iterations = 0;
   double checkpoint_time = -1;
 
   string dump_strategy = ""; //"holdem.2p.6std.bigabs.limit.strategy";
@@ -175,6 +176,16 @@ int main(int argc, char **argv) {
       cout << "Saving current strategy to" << checkfile << "...\n";
       cfr->dump((char *)checkfile.c_str());
     }
+
+    size_t iter_cnt_sum = 0;
+    for (unsigned i = 0; i < iter_threads_cnt.size(); ++i)
+      iter_cnt_sum += iter_threads_cnt[i];
+    std::cout << "#iterations: " << comma_format(iter_cnt_sum) << "\n";
+    if(options.nb_target_iterations > 0 && iter_cnt_sum >= options.nb_target_iterations){
+        std::cout << "specified iterations reached. exiting.\n"; 
+        break; 
+    }
+
     pause_threads = false;
     checkpoint_start = ch::steady_clock::now();
   }
@@ -220,9 +231,10 @@ int parse_options(int argc, char **argv) {
         "action-abstraction-param,n",
         po::value<string>(&options.action_abs_param),
         "parameter passed to the action abstraction.")(
-        "runtime,r", po::value<double>(&options.runtime), "runtime in seconds")(
+        "runtime,r", po::value<double>(&options.runtime), "max runtime in seconds")(
+        "iterations,u", po::value<size_t>(&options.nb_target_iterations), "if specified. nb iterations is checked at checkpoints and the algorithm is stopped if iterations are reached.")(
         "checkpoint,k", po::value<double>(&options.checkpoint_time),
-        "checkpoint time in seconds.")(
+        "checkpoint time in seconds. (if iterations are used this is the number of iterations for a checkpoint.")(
         "dump-stategy,d", po::value<string>(&options.dump_strategy),
         "safe generated strategy to file.")(
         "init-stategy,i", po::value<string>(&options.init_strategy),
