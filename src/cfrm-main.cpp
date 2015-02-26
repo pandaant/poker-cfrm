@@ -37,7 +37,7 @@ struct {
   int nb_threads = 6;
   size_t seed = time(NULL);
 
-  double runtime = 50;
+  size_t runtime = 50;
   size_t nb_target_iterations = 0;
   double checkpoint_time = -1;
 
@@ -231,7 +231,7 @@ int parse_options(int argc, char **argv) {
         "action-abstraction-param,n",
         po::value<string>(&options.action_abs_param),
         "parameter passed to the action abstraction.")(
-        "runtime,r", po::value<double>(&options.runtime), "max runtime in seconds")(
+        "runtime,r", po::value<size_t>(&options.runtime), "max runtime in seconds")(
         "iterations,u", po::value<size_t>(&options.nb_target_iterations), "if specified. nb iterations is checked at checkpoints and the algorithm is stopped if iterations are reached.")(
         "checkpoint,k", po::value<double>(&options.checkpoint_time),
         "checkpoint time in seconds. (if iterations are used this is the number of iterations for a checkpoint.")(
@@ -255,6 +255,10 @@ int parse_options(int argc, char **argv) {
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
+
+    if (vm.count("iterations")) {
+        std::cout << "number of target iterations set to: " << vm["iterations"].as<size_t>() << "\n";
+    }
 
     if (vm.count("game-type")) {
       string gt = vm["game-type"].as<string>();
