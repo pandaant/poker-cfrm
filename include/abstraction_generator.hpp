@@ -24,8 +24,8 @@ protected:
 
 public:
   AbstractionGenerator(std::ofstream &dump_to) : dump_to(&dump_to) {}
-  virtual void generate(nbgen &rng) = 0;
-  virtual void generate_round(int round, nbgen &rng) = 0;
+  virtual void generate(nbgen &rng, std::vector<histogram_c> &round_centers) = 0;
+  virtual void generate_round(int round, nbgen &rng, histogram_c &center) = 0;
   // virtual void dump(const char *dump_name) = 0;
   virtual ~AbstractionGenerator() {}
   // virtual void dump(int round, std::vector<unsigned> buckets) = 0;
@@ -66,18 +66,19 @@ public:
     assert(hand_indexer_init(2, (uint8_t[]) {2, 5}, &indexer[3]));
   }
 
-  virtual void generate(nbgen &rng) {
+  virtual void generate(nbgen &rng, std::vector<histogram_c> &round_centers) {
     for (int r = 0; r < nb_buckets.size(); ++r) {
       size_t round_size = indexer[r].round_size[(r == 0) ? 0 : 1];
       std::cout << "evaluating " << round_size << " combinations in round " << r
                 << ". required space: " << (sizeof(hand_feature) * round_size) /
                                                (1024 * 1024.0 * 1024.0)
                 << " gb \n";
-      generate_round(r, rng);
+      histogram_c center;
+      generate_round(r, rng,center);
     }
   }
 
-  virtual void generate_round(int round, nbgen &rng) {
+  virtual void generate_round(int round, nbgen &rng, histogram_c &center) {
     int_c board_card_sum{0, 3, 4, 5};
       size_t round_size = indexer[round].round_size[(round == 0) ? 0 : 1];
       std::vector<datapoint_t> features = std::vector<datapoint_t>(round_size);
@@ -122,7 +123,6 @@ public:
                 << nb_buckets[round] << " buckets...\n";
       //kmeans(nb_buckets[round], features, clusterrng);
 
-      histogram_c center;
       unsigned restarts = 100;
       kmeans_center_multiple_restarts(
           restarts, nb_buckets[round], kmeans_center_init_random, center, features,rng);
@@ -201,7 +201,7 @@ public:
     return bucket - 1;
   }
 
-  virtual void generate(nbgen &rng) {
+  virtual void generate(nbgen &rng, std::vector<histogram_c> &round_centers) {
 
     for (int r = 0; r < nb_buckets.size() - 2; ++r) {
       size_t round_size = indexer[r].round_size[(r == 0) ? 0 : 1];
@@ -212,11 +212,12 @@ public:
     }
 
     for (int r = 0; r < nb_buckets.size(); ++r) {
-      generate_round(r, rng);
+      histogram_c center;
+      generate_round(r, rng,center);
     }
   }
 
-  virtual void generate_round(int round, nbgen &rng) {
+  virtual void generate_round(int round, nbgen &rng, histogram_c &center) {
     int_c board_card_sum{0, 3, 4, 5};
     int nb_hist_samples = nb_hist_samples_per_round[round];
     size_t round_size = indexer[round].round_size[(round == 0) ? 0 : 1];
@@ -301,7 +302,6 @@ public:
     std::cout << "clustering " << round_size << " holdings into "
               << nb_buckets[round] << " buckets...\n";
 
-      histogram_c center;
       unsigned restarts = 100;
       kmeans_center_multiple_restarts(
           restarts, nb_buckets[round], kmeans_center_init_random, center, features,rng);
@@ -436,7 +436,7 @@ public:
     assert(hand_indexer_init(2, (uint8_t[]) {2, 5}, &indexer[3]));
   }
 
-  virtual void generate(nbgen &rng) {
+  virtual void generate(nbgen &rng, std::vector<histogram_c> &round_centers) {
 
     for (int r = 0; r < nb_buckets.size() - 2; ++r) {
       size_t round_size = indexer[r].round_size[(r == 0) ? 0 : 1];
@@ -447,12 +447,13 @@ public:
     }
 
     for (int r = 0; r < nb_buckets.size(); ++r) {
-      generate_round(r, rng);
+      histogram_c center;
+      generate_round(r, rng,center);
       // exit(1);
     }
   }
 
-  virtual void generate_round(int round, nbgen &rng) {
+  virtual void generate_round(int round, nbgen &rng, histogram_c &center) {
     int_c board_card_sum{0, 3, 4, 5};
     size_t round_size = indexer[round].round_size[(round == 0) ? 0 : 1];
     std::cout << "evaluating round " << round << " holdings.\n";
@@ -474,12 +475,12 @@ public:
       unsigned buckets_empty = 0;
     do {
       //kmeans(num_opponent_clusters[round], ochs_hands, clusterrng);
-      histogram_c center;
+      histogram_c ocenter;
       unsigned restarts = 100;
       kmeans_center_multiple_restarts(
-          restarts, num_opponent_clusters[round], kmeans_center_init_random, center, ochs_hands,rng);
+          restarts, num_opponent_clusters[round], kmeans_center_init_random, ocenter, ochs_hands,rng);
       unsigned nb_features = ochs_hands[0].histogram.size();
-      kmeans(num_opponent_clusters[round], ochs_hands, l2_distance, center, nb_threads, 0.005);
+      kmeans(num_opponent_clusters[round], ochs_hands, l2_distance, ocenter, nb_threads, 0.005);
       std::vector<unsigned> elem_buckets(num_opponent_clusters[round], 0);
       for(unsigned x = 0; x < ochs_hands.size(); ++x){
        elem_buckets[ochs_hands[x].cluster]++; 
@@ -590,7 +591,6 @@ public:
     std::cout << "clustering " << round_size << " holdings into "
               << nb_buckets[round] << " buckets...\n";
     //kmeans_l2(nb_buckets[round], features, clusterrng,  nb_threads);
-      histogram_c center;
       unsigned restarts = 100;
       kmeans_center_multiple_restarts(
           restarts, nb_buckets[round], kmeans_center_init_random, center, features,rng);
@@ -633,8 +633,8 @@ class SuitIsomorphAbstractionGenerator : public AbstractionGenerator {
 
 public:
   SuitIsomorphAbstractionGenerator(std::ofstream &dump_to);
-  virtual void generate(nbgen &rng);
-  virtual void generate_round(int round, nbgen &rng);
+  virtual void generate(nbgen &rng, std::vector<histogram_c> &round_centers);
+  virtual void generate_round(int round, nbgen &rng, histogram_c &center);
 };
 
 class MixedAbstractionGenerator : public AbstractionGenerator {
@@ -646,9 +646,9 @@ public:
                             std::vector<AbstractionGenerator *> generators);
 
   ~MixedAbstractionGenerator();
-  virtual void generate(nbgen &rng);
+  virtual void generate(nbgen &rng, std::vector<histogram_c> &round_centers);
 
-  virtual void generate_round(int round, nbgen &rng);
+  virtual void generate_round(int round, nbgen &rng, histogram_c &center);
 };
 
 class PotentialAwareAbstractionGenerator : public AbstractionGenerator {
@@ -662,9 +662,9 @@ public:
                             std::vector<AbstractionGenerator *> generators);
 
   ~PotentialAwareAbstractionGenerator();
-  virtual void generate(nbgen &rng);
+  virtual void generate(nbgen &rng, std::vector<histogram_c> &round_centers);
 
-  virtual void generate_round(int round, nbgen &rng);
+  virtual void generate_round(int round, nbgen &rng, histogram_c &center);
 };
 
 #endif

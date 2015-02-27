@@ -1,4 +1,5 @@
 *.strategy
+*.strat
 *.card_abs
 *.test
 *.swp
@@ -6,3 +7,5 @@
 *.d
 *.log
 test.abs
+strategies/*
+abstractions/*

@@ -119,8 +119,11 @@ int main(int argc, char **argv) {
     cfr = new CFR_SAMPLER(game, (char *)options.init_strategy.c_str());
   }
 
-  std::cout << "Game tree size: " << cfr->count_bytes(game->game_tree_root()) /
-                                         1024 << " kb\n";
+  //std::cout << "Game tree size: " << cfr->count_bytes(game->game_tree_root()) /
+                                         //1024 << " kb\n";
+
+  std::cout << "Number of informationsets:" << game->get_nb_infosets() << "\n";
+  std::cout << "Number of terminalnodes:" << cfr->count_terminal_nodes(game->game_tree_root()) << "\n";
 
 
   auto runtime = ch::milliseconds((int)(options.runtime * 1000));

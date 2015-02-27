@@ -36,6 +36,7 @@ INode *AbstractGame::init_game_tree(Action action, State &state,
   }
 
   std::vector<Action> actions = action_abs->get_actions(game, state);
+
   std::vector<INode *> children(actions.size());
   //std::cout << "pot: " << state.spent[0]+state.spent[1] << "\t nb_actions: " << actions.size() << "\n";
   for (int c = 0; c < actions.size(); ++c) {

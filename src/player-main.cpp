@@ -10,6 +10,8 @@ extern "C" {
 #include "net.h"
 }
 
+#define CFR_SAMPLER ChanceSamplingCFR
+
 using namespace std;
 namespace ch = std::chrono;
 namespace po = boost::program_options;
@@ -56,9 +58,6 @@ int main(int argc, char **argv) {
   nbgen rng(options.seed);
   read_game((char *)options.game_definition.c_str());
 
-  CardAbstraction *cardabs;
-  ActionAbstraction *actionabs;
-
   cout << "using information abstraction type: "
        << card_abstraction_str[options.card_abs]
        << " with parameter: " << options.card_abs_param << "\n";
@@ -71,14 +70,16 @@ int main(int argc, char **argv) {
   ActionAbstraction *action_abs = load_action_abstraction(
       gamedef, options.action_abs, options.action_abs_param);
 
-  AbstractGame *agame = new HoldemGame(gamedef, cardabs, actionabs, NULL);
+  AbstractGame *agame = new HoldemGame(gamedef, card_abs, action_abs, NULL);
+  cout << "created holdem game tree.\n";
   CFRM *cfr =
-      new ExternalSamplingCFR(agame, (char *)options.init_strategy.c_str());
+      new CFR_SAMPLER(agame, (char *)options.init_strategy.c_str());
+  cout << "CFR Initialized\n";
 
   /* connect to the dealer */
   sock = connectTo((char *)options.host.c_str(), options.port);
   if (sock < 0) {
-
+      std::cout << "could not connect to socket\n";
     exit(EXIT_FAILURE);
   }
   toServer = fdopen(sock, "w");
@@ -212,6 +213,9 @@ int parse_options(int argc, char **argv) {
         "set card abstraction to use")("action-abstraction,a",
                                        po::value<string>(),
                                        "set action abstraction to use")(
+        "action-abstraction-param,n",
+        po::value<string>(&options.action_abs_param),
+        "parameter passed to the action abstraction.")(
         "card-abs-param,m", po::value<string>(&options.card_abs_param), "parameter for card abstraction")(
         "host,o", po::value<string>(&options.host), "host to connect to")(
         "port,p", po::value<unsigned>(&options.port), "port to connect to")(

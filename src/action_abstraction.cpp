@@ -61,7 +61,10 @@ action_c NullActionAbstraction::get_actions(const Game *game,
 
 PotRelationActionAbstraction::PotRelationActionAbstraction(
     const Game *game, std::vector<double> fractions)
-    : game(game), fractions(fractions) {}
+    : game(game), fractions(fractions) {
+    
+    
+    }
 
 action_c PotRelationActionAbstraction::get_actions(const Game *game,
                                                    const State &state){

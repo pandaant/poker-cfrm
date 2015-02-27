@@ -25,16 +25,16 @@ std::vector<std::string> split(const std::string &s, char delim) {
 std::vector<int> str_to_int_list(const std::string &s, char delim) {
   std::vector<std::string> elems = split(s, delim);
   std::vector<int> us(elems.size());
-  for(unsigned i = 0; i < elems.size(); ++i)
-      us[i] = atoi(elems[i].c_str());
+  for (unsigned i = 0; i < elems.size(); ++i)
+    us[i] = atoi(elems[i].c_str());
   return us;
 }
 
 std::vector<double> str_to_dbl_list(const std::string &s, char delim) {
   std::vector<std::string> elems = split(s, delim);
   std::vector<double> dbls(elems.size());
-  for(unsigned i = 0; i < elems.size(); ++i)
-      dbls[i] = atof(elems[i].c_str());
+  for (unsigned i = 0; i < elems.size(); ++i)
+    dbls[i] = atof(elems[i].c_str());
   return dbls;
 }
 
@@ -62,14 +62,15 @@ ActionAbstraction *load_action_abstraction(const Game *gamedef,
     return new NullActionAbstraction(gamedef, param);
     break;
   case POTRELACTION_ABS:
-    if(param == ""){
-        printf("missing parameter \"fractions\" for pot relation action abstraction\n");
-        exit(1);
+    if (param == "") {
+      printf("missing parameter \"fractions\" for pot relation action "
+             "abstraction\n");
+      exit(1);
     }
 
-    std::vector<double> fractions = str_to_dbl_list(param,',');
-    //for(unsigned i = 0; i < fractions.size(); ++i)
-        //std::cout << fractions[i] << "\n";
+    std::vector<double> fractions = str_to_dbl_list(param, ',');
+    // for(unsigned i = 0; i < fractions.size(); ++i)
+    // std::cout << fractions[i] << "\n";
     return new PotRelationActionAbstraction(gamedef, fractions);
     break;
   };

@@ -42,6 +42,8 @@ struct {
   size_t seed = time(NULL);
   string save_to = "";
 
+  bool dump_centers = false;
+
   string print_hand_hist = "";
   string print_hand_ochs = "";
   string hist_calc_board = "";
@@ -153,8 +155,12 @@ int main(int argc, char **argv) {
     break;
   };
 
-  generator->generate(rng);
+  std::vector<histogram_c> round_centers(4);
+  generator->generate(rng,round_centers);
   cout << "saved abstraction to " << options.save_to << "\n";
+  if(options.dump_centers){
+  cout << "saving round cluster centers to " << options.save_to << "." << ".center\n";
+  }
   dump_to.close();
   // generator->dump(options.save_to.c_str());
 
@@ -177,6 +183,8 @@ int parse_options(int argc, char **argv) {
         "if printing a histogramm the board can be set for the calculation.")(
         "threads", po::value<int>(&options.nb_threads),
         "set number of threads to use. default: 1")(
+        "dump-centers", po::bool_switch(&options.dump_centers),
+        "dumps the final centers of the clustering algorithms to file (binary)")(
         "seed", po::value<size_t>(&options.seed),
         "set seed to use. default: current time")(
         "metric,m", po::value<string>(),

@@ -75,6 +75,31 @@ public:
   void dump(char *filename);
 
   // recursively counts the size of the subtree curr.
+  size_t count_terminal_nodes(INode *curr) {
+    if (curr->is_public_chance()) {
+      PublicChanceNode *n = (PublicChanceNode *)curr;
+      size_t sum = 0;
+      for (unsigned i = 0; i < n->children.size(); ++i) {
+        sum += count_terminal_nodes(n->children[i]);
+      }
+      return sum;
+    } else if (curr->is_private_chance()) {
+      return count_terminal_nodes(((PrivateChanceNode *)curr)->child);
+    } else if (curr->is_terminal()) {
+      if (curr->is_fold())
+        return 1;
+      else
+        return 1;
+    }
+    InformationSetNode *n = (InformationSetNode *)curr;
+    size_t sum = 0;
+    for (unsigned i = 0; i < n->children.size(); ++i) {
+      sum += count_terminal_nodes(n->children[i]);
+    }
+    return sum;
+  }
+
+  // recursively counts the size of the subtree curr.
   size_t count_bytes(INode *curr) {
     if (curr->is_public_chance()) {
       PublicChanceNode *n = (PublicChanceNode *)curr;

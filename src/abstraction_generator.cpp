@@ -14,14 +14,15 @@ SuitIsomorphAbstractionGenerator::SuitIsomorphAbstractionGenerator(
   assert(hand_indexer_init(2, (uint8_t[]) {2, 5}, &indexer[3]));
 }
 
-void SuitIsomorphAbstractionGenerator::generate(nbgen &rng) {
+void SuitIsomorphAbstractionGenerator::generate(nbgen &rng, std::vector<histogram_c> &round_centers) {
+  histogram_c center;
   for (unsigned i = 0; i < 4; ++i)
-    generate_round(i, rng);
+    generate_round(i, rng,center);
 }
 
 // TODO datatype to small when round two or three would be used with this
 // abstraction
-void SuitIsomorphAbstractionGenerator::generate_round(int round, nbgen &rng) {
+void SuitIsomorphAbstractionGenerator::generate_round(int round, nbgen &rng, histogram_c &center) {
   unsigned nb_entries = indexer[round].round_size[round == 0 ? 0 : 1];
         dump_to->write(reinterpret_cast<const char *>(&round),
                        sizeof(round));
@@ -43,17 +44,18 @@ MixedAbstractionGenerator::MixedAbstractionGenerator(
 
 MixedAbstractionGenerator::~MixedAbstractionGenerator() {}
 
-void MixedAbstractionGenerator::generate(nbgen &rng) {
+void MixedAbstractionGenerator::generate(nbgen &rng, std::vector<histogram_c> &round_centers) {
   for (unsigned i = 0; i < generators.size(); ++i) {
     auto start = ch::steady_clock::now();
-    generators[i]->generate_round(i, rng);
+    histogram_c center;
+    generators[i]->generate_round(i, rng,center);
     std::cout << "round " << i << " eval and clustering took: "
               << ch::duration_cast<ch::seconds>(ch::steady_clock::now() - start)
                      .count() << " sec.\n";
   }
 }
 
-void MixedAbstractionGenerator::generate_round(int round, nbgen &rng) {}
+void MixedAbstractionGenerator::generate_round(int round, nbgen &rng, histogram_c &center) {}
 
 //
 // POTENTIAL AWARE ABSTRACTION
@@ -73,18 +75,19 @@ PotentialAwareAbstractionGenerator::PotentialAwareAbstractionGenerator(
 PotentialAwareAbstractionGenerator::~PotentialAwareAbstractionGenerator() {}
 
 // calculate rounds backwards to be able to cluster with data of a later round
-void PotentialAwareAbstractionGenerator::generate(nbgen &rng) {
+void PotentialAwareAbstractionGenerator::generate(nbgen &rng, std::vector<histogram_c> &round_centers) {
   for (unsigned i = generators.size()-1; i >= 0 ; --i) {
+      histogram_c center;
     auto start = ch::steady_clock::now();
     if( potentialround == i ){
 
     }
     else if( potentialround == (i+1) ) {
       // save centers from clustering for next round
-      generators[i]->generate_round(i, rng);
+      generators[i]->generate_round(i, rng,center);
     }
     else{
-      generators[i]->generate_round(i, rng);
+      generators[i]->generate_round(i, rng,center);
     }
     std::cout << "round " << i << " eval and clustering took: "
               << ch::duration_cast<ch::seconds>(ch::steady_clock::now() - start)
@@ -92,5 +95,5 @@ void PotentialAwareAbstractionGenerator::generate(nbgen &rng) {
   }
 }
 
-void PotentialAwareAbstractionGenerator::generate_round(int round, nbgen &rng) {
+void PotentialAwareAbstractionGenerator::generate_round(int round, nbgen &rng, histogram_c &center) {
 }
