@@ -56,7 +56,7 @@ public:
       f_ab_x = ((b-x)*(1+a)) / ((b-a)*(1+x));
       x_median = (a+b+2*a*b) / (a+b+2);
 
-      printf("fab(x)= %f\n",f_ab_x);
+      //printf("fab(x)= %f\n",f_ab_x);
       //printf("median: %f\n",x_median);
       //printf("a/x* = %f, x*/b = %f\n",a/x_median,x_median/b);
       //printf("f/x* = %f, f*/b = %f\n",a/f_ab_x,f_ab_x/b);

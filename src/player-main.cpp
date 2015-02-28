@@ -75,6 +75,8 @@ int main(int argc, char **argv) {
   CFRM *cfr =
       new CFR_SAMPLER(agame, (char *)options.init_strategy.c_str());
   cout << "CFR Initialized\n";
+  std::cout << "Number of informationsets:" << agame->get_nb_infosets() << "\n";
+  std::cout << "Number of terminalnodes:" << cfr->count_terminal_nodes(agame->game_tree_root()) << "\n";
 
   /* connect to the dealer */
   sock = connectTo((char *)options.host.c_str(), options.port);
@@ -164,6 +166,7 @@ int main(int argc, char **argv) {
                                                      board, state.state.round);
 
     // choose according to distribution
+    std::cout << "strategy size: " << strategy.size() << "\t child size: " << curr_node->get_children().size() << "\n";
 
     // for( a = 0; a < NUM_ACTION_TYPES; ++a ) {
     std::discrete_distribution<int> d(strategy.begin(), strategy.end());

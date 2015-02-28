@@ -9,6 +9,7 @@
 #include "definitions.hpp"
 #include "card_abstraction.hpp"
 #include "action_abstraction.hpp"
+#include "action_translation.hpp"
 #include <ecalc/handranks.hpp>
 
 using std::vector;
@@ -40,6 +41,8 @@ public:
   INode *lookup_state(const State *state, int player, INode *curr_node,
                       int current_round, int curr_action,
                       std::string path = "") {
+    PseudoHarmonicMapping mapper;
+
     // get action at state
     if (curr_node->is_terminal()) {
       std::cout << "keine actions mehr in terminal\n";
@@ -54,18 +57,40 @@ public:
     int max_actions = state->numActions[round];
     if (curr_action >= max_actions) {
       assert(round == state->round);
+      std::cout << "returning from found path: " << path << "\n";
       return curr_node;
     }
 
     Action action = state->action[round][curr_action];
-    INode *child;
+    INode *child = NULL;
+    int first_raise_idx = -1;
     for (unsigned i = 0; i < node->get_children().size(); ++i) {
       Action caction = node->get_children()[i]->get_action();
-      if (caction.type == action.type && caction.size == action.size)
+      if (caction.type == action.type && caction.type != a_raise)
         child = node->get_children()[i];
+      else if(caction.type == a_raise){
+        first_raise_idx = ( first_raise_idx > 0 ) ? first_raise_idx : i; 
+      }
     }
-    return lookup_state(state, player, child, round, curr_action + 1,
-                        path + ActionsStr[action.type]);
+
+    // raise actions
+    if( child == NULL ){
+            //std::cout << "raise raise to map: " << action.size << "\n";
+        std::vector<double> sizes(node->get_children().size()-first_raise_idx); 
+        for (unsigned i = first_raise_idx; i < node->get_children().size(); ++i) {
+            sizes[i-first_raise_idx] = node->get_children()[i]->get_action().size;
+            //std::cout << "raise: " << sizes[i-first_raise_idx] << "\n";
+        }
+
+        int abstract_size = mapper.map_rand(sizes, action.size);
+        //std::cout << "abs size: " << abstract_size << "\n";
+        child = node->get_children()[first_raise_idx+abstract_size];
+    }
+
+    return lookup_state(
+        state, player, child, round, curr_action + 1,
+        path + ActionsStr[action.type] +
+            ((action.type == a_raise) ? std::to_string(action.size) : ""));
   }
 
   unsigned deck_size() { return game->numSuits * game->numRanks; }
