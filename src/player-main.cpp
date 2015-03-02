@@ -72,16 +72,16 @@ int main(int argc, char **argv) {
 
   AbstractGame *agame = new HoldemGame(gamedef, card_abs, action_abs, NULL);
   cout << "created holdem game tree.\n";
-  CFRM *cfr =
-      new CFR_SAMPLER(agame, (char *)options.init_strategy.c_str());
+  CFRM *cfr = new CFR_SAMPLER(agame, (char *)options.init_strategy.c_str());
   cout << "CFR Initialized\n";
   std::cout << "Number of informationsets:" << agame->get_nb_infosets() << "\n";
-  std::cout << "Number of terminalnodes:" << cfr->count_terminal_nodes(agame->game_tree_root()) << "\n";
+  std::cout << "Number of terminalnodes:"
+            << cfr->count_terminal_nodes(agame->game_tree_root()) << "\n";
 
   /* connect to the dealer */
   sock = connectTo((char *)options.host.c_str(), options.port);
   if (sock < 0) {
-      std::cout << "could not connect to socket\n";
+    std::cout << "could not connect to socket\n";
     exit(EXIT_FAILURE);
   }
   toServer = fdopen(sock, "w");
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
   // play the gamedef!
   while (fgets(line, MAX_LINE_LEN, fromServer)) {
     // line = "MATCHSTATE:1:994:r:|Ks";
-    // std::cout << line << "\n";
+    // std::cout << "INPUT: " << line << "\n";
 
     /* ignore comments */
     if (line[0] == '#' || line[0] == ';') {
@@ -132,56 +132,69 @@ int main(int argc, char **argv) {
     line[len] = ':';
     ++len;
 
-     //char* c = new char[100];
-     //printState(gamedef, &state.state, 100, c);
-     //printf("%s\n",c);
-    // int d = state.state.holeCards[state.viewingPlayer][0];
-
-    // std::cout << "hand: " << d  << "\n";
+    char *c = new char[300];
+    printState(gamedef, &state.state, 300, c);
+    printf("%s\n", c);
 
     // lookup current node we are in
     InformationSetNode *curr_node = (InformationSetNode *)cfr->lookup_state(
         &state.state, state.viewingPlayer);
-    // get strategy at curr_node
-    //
-    card_c hand(gamedef->numHoleCards);
-    for (int i = 0; i < gamedef->numHoleCards; ++i) {
-      hand[i] = state.state.holeCards[state.viewingPlayer][i];
-    }
 
-    card_c board;
-    //for (int i = 0; i < gamedef->numRounds; ++i) {
-      //if (i > state.state.round)
-        //continue;
-      for (int c = 0; c < sumBoardCards(gamedef,state.state.round); ++c) {
+    // CHECK IF WE FOUND THE CORRECT NODE
+    if (curr_node != NULL) {
+      // get strategy at curr_node
+      //
+      card_c hand(gamedef->numHoleCards);
+      for (int i = 0; i < gamedef->numHoleCards; ++i) {
+        hand[i] = state.state.holeCards[state.viewingPlayer][i];
+      }
+
+      card_c board;
+      // for (int i = 0; i < gamedef->numRounds; ++i) {
+      // if (i > state.state.round)
+      // continue;
+      for (int c = 0; c < sumBoardCards(gamedef, state.state.round); ++c) {
         board.push_back(state.state.boardCards[c]);
       }
-    //}
-    //std::cout << int(hand[0]) << "," << int(hand[1]) << "\n";
-    //for(unsigned i = 0; i < board.size(); ++i)
-        //std::cout << int(board[i]) << " ";
-    //std::cout << "\n";
+      //}
+      // std::cout << int(hand[0]) << "," << int(hand[1]) << "\n";
+      // for(unsigned i = 0; i < board.size(); ++i)
+      // std::cout << int(board[i]) << " ";
+      // std::cout << "\n";
 
-    auto strategy = cfr->get_normalized_avg_strategy(curr_node->get_idx(), hand,
-                                                     board, state.state.round);
+      auto strategy = cfr->get_normalized_avg_strategy(
+          curr_node->get_idx(), hand, board, state.state.round);
 
-    // choose according to distribution
-    std::cout << "strategy size: " << strategy.size() << "\t child size: " << curr_node->get_children().size() << "\n";
+      // choose according to distribution
+      // std::cout << "strategy size: " << strategy.size() << "\t child size: "
+      // << curr_node->get_children().size() << "\n";
 
-    // for( a = 0; a < NUM_ACTION_TYPES; ++a ) {
-    std::discrete_distribution<int> d(strategy.begin(), strategy.end());
-    int action_idx = d(rng);
-    action = curr_node->get_children()[action_idx]->get_action();
+      // for( a = 0; a < NUM_ACTION_TYPES; ++a ) {
+      std::discrete_distribution<int> d(strategy.begin(), strategy.end());
+      int max_tries = 10;
+      do {
+        int action_idx = d(rng);
+        action = curr_node->get_children()[action_idx]->get_action();
+        --max_tries;
+        std::cout << "#" << max_tries
+                  << " choosen action: " << ActionsStr[action.type] << " = "
+                  << action.size << "\n";
+      } while (!isValidAction(gamedef, &state.state, 0, &action) ||
+               max_tries == 0);
 
-    //std::cout << ActionsStr[action.type] << " = " << action.size << "\n";
+    } else {
+      // force fold
+      std::cout << "state not found in game tree. forcing fold.\n";
+      action.type = a_fold;
+    }
 
     //[> do the action! <]
-    //if(action.type == a_fold){
-        //std::cout << "fold action. ";
-        //auto oh = action;
-        //oh.type = a_check;
-        //if(isValidAction(gamedef, &state.state, 0, &oh))
-            //std::cout << " check is possible\n";
+    // if(action.type == a_fold){
+    // std::cout << "fold action. ";
+    // auto oh = action;
+    // oh.type = a_check;
+    // if(isValidAction(gamedef, &state.state, 0, &oh))
+    // std::cout << " check is possible\n";
     //}
 
     assert(isValidAction(gamedef, &state.state, 0, &action));
@@ -219,7 +232,8 @@ int parse_options(int argc, char **argv) {
         "action-abstraction-param,n",
         po::value<string>(&options.action_abs_param),
         "parameter passed to the action abstraction.")(
-        "card-abs-param,m", po::value<string>(&options.card_abs_param), "parameter for card abstraction")(
+        "card-abs-param,m", po::value<string>(&options.card_abs_param),
+        "parameter for card abstraction")(
         "host,o", po::value<string>(&options.host), "host to connect to")(
         "port,p", po::value<unsigned>(&options.port), "port to connect to")(
         "init-stategy,i", po::value<string>(&options.init_strategy),

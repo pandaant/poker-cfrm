@@ -45,7 +45,8 @@ public:
 
     // get action at state
     if (curr_node->is_terminal()) {
-      std::cout << "keine actions mehr in terminal\n";
+      // we could have been pushed off tree.
+      std::cout << "keine actions mehr in terminal state " << path << "\n";
       return NULL;
     }
     InformationSetNode *node = (InformationSetNode *)curr_node;
@@ -57,40 +58,64 @@ public:
     int max_actions = state->numActions[round];
     if (curr_action >= max_actions) {
       assert(round == state->round);
-      std::cout << "returning from found path: " << path << "\n";
+         std::cout << "returning found path: " << path << "\n";
       return curr_node;
     }
 
     Action action = state->action[round][curr_action];
     INode *child = NULL;
     int first_raise_idx = -1;
+
+    // std::cout << "evaluation raises for " << path << "\n";
     for (unsigned i = 0; i < node->get_children().size(); ++i) {
       Action caction = node->get_children()[i]->get_action();
       if (caction.type == action.type && caction.type != a_raise)
         child = node->get_children()[i];
-      else if(caction.type == a_raise){
-        first_raise_idx = ( first_raise_idx > 0 ) ? first_raise_idx : i; 
+      else if (caction.type == a_raise) {
+        first_raise_idx = (first_raise_idx > 0) ? first_raise_idx : i;
       }
     }
 
     // raise actions
-    if( child == NULL ){
-            //std::cout << "raise raise to map: " << action.size << "\n";
-        std::vector<double> sizes(node->get_children().size()-first_raise_idx); 
-        for (unsigned i = first_raise_idx; i < node->get_children().size(); ++i) {
-            sizes[i-first_raise_idx] = node->get_children()[i]->get_action().size;
-            //std::cout << "raise: " << sizes[i-first_raise_idx] << "\n";
-        }
+    if (child == NULL) {
+      std::cout << "raise raise to map: " << action.size << "\n";
+      std::vector<double> sizes(node->get_children().size() - first_raise_idx);
+      for (unsigned i = first_raise_idx; i < node->get_children().size(); ++i) {
+        sizes[i - first_raise_idx] = node->get_children()[i]->get_action().size;
+        std::cout << "raise: " << sizes[i - first_raise_idx] << "\n";
+      }
 
-        int abstract_size = mapper.map_rand(sizes, action.size);
-        //std::cout << "abs size: " << abstract_size << "\n";
-        child = node->get_children()[first_raise_idx+abstract_size];
+      unsigned lower_bound, upper_bound;
+      int bound_res = mapper.get_bounds(sizes, action.size, lower_bound, upper_bound);
+      int abstract_size = mapper.map_rand(sizes, action.size);
+      unsigned unused_bound =
+          abstract_size == lower_bound ? upper_bound : lower_bound;
+      std::cout << "abs size: " << abstract_size << "\n";
+      child = node->get_children()[first_raise_idx + abstract_size];
+
+      // check if tree can be traversed in that node. if no, take the unused
+      // bound even when its worse.
+      INode *res = lookup_state(state, player, child, round, curr_action + 1,
+                                path + ActionsStr[action.type] +
+                                    std::to_string(action.size));
+
+      if (res == NULL && bound_res == 0 ) {
+        std::cout << "originally choosen raise idx: " << abstract_size
+                  << " leads to a nonexisting node. trying other bound idx: "
+                  << unused_bound << "\n";
+        child = node->get_children()[first_raise_idx + unused_bound];
+        return lookup_state(state, player, child, round, curr_action + 1,
+                            path + ActionsStr[action.type] +
+                                std::to_string(action.size));
+
+      } else {
+        return res;
+      }
+
+    } else {
+      return lookup_state(state, player, child, round, curr_action + 1,
+                          path + ActionsStr[action.type]);
     }
-
-    return lookup_state(
-        state, player, child, round, curr_action + 1,
-        path + ActionsStr[action.type] +
-            ((action.type == a_raise) ? std::to_string(action.size) : ""));
   }
 
   unsigned deck_size() { return game->numSuits * game->numRanks; }
@@ -141,7 +166,7 @@ class HoldemGame : public AbstractGame {
 
 public:
   HoldemGame(const Game *game_definition, CardAbstraction *cabs,
-             ActionAbstraction *aabs, ecalc::Handranks* hr, int nb_threads = 1);
+             ActionAbstraction *aabs, ecalc::Handranks *hr, int nb_threads = 1);
 
   virtual void evaluate(hand_t &hand);
 };

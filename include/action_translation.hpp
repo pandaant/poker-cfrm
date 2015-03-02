@@ -13,6 +13,8 @@ public:
 };
 
 class PseudoHarmonicMapping : public ActionTranslation {
+
+public:
   // @return -1 if x < lowest bound -> map to index 0,
   //         1 if x > highest bound -> map to last index,
   //         0 if lower_bound and upper_bound are filled and returned.
@@ -38,7 +40,6 @@ class PseudoHarmonicMapping : public ActionTranslation {
     return 0;
   }
 
-public:
   virtual size_t map_rand(std::vector<double> &abs_actions, double x) {
     double a, b, x_median, f_ab_x;
     unsigned lower_bound, upper_bound, num_actions;
@@ -56,8 +57,8 @@ public:
       f_ab_x = ((b-x)*(1+a)) / ((b-a)*(1+x));
       x_median = (a+b+2*a*b) / (a+b+2);
 
-      //printf("fab(x)= %f\n",f_ab_x);
-      //printf("median: %f\n",x_median);
+      printf("fab(x)= %f\n",f_ab_x);
+      printf("median: %f\n",x_median);
       //printf("a/x* = %f, x*/b = %f\n",a/x_median,x_median/b);
       //printf("f/x* = %f, f*/b = %f\n",a/f_ab_x,f_ab_x/b);
 

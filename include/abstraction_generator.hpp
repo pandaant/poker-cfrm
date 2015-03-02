@@ -73,8 +73,7 @@ public:
                 << ". required space: " << (sizeof(hand_feature) * round_size) /
                                                (1024 * 1024.0 * 1024.0)
                 << " gb \n";
-      histogram_c center;
-      generate_round(r, rng,center);
+      generate_round(r, rng,round_centers[r]);
     }
   }
 
@@ -212,8 +211,7 @@ public:
     }
 
     for (int r = 0; r < nb_buckets.size(); ++r) {
-      histogram_c center;
-      generate_round(r, rng,center);
+      generate_round(r, rng,round_centers[r]);
     }
   }
 
@@ -447,8 +445,7 @@ public:
     }
 
     for (int r = 0; r < nb_buckets.size(); ++r) {
-      histogram_c center;
-      generate_round(r, rng,center);
+      generate_round(r, rng,round_centers[r]);
       // exit(1);
     }
   }
