@@ -180,12 +180,15 @@ int main(int argc, char **argv) {
                   << " choosen action: " << ActionsStr[action.type] << " = "
                   << action.size << "\n";
       } while (!isValidAction(gamedef, &state.state, 0, &action) ||
-               max_tries == 0);
+               max_tries > 0);
 
     } else {
-      // force fold
-      std::cout << "state not found in game tree. forcing fold.\n";
-      action.type = a_fold;
+      std::cout << "state not found in game tree. forcing first possible action.\n";
+       for( a = 0; a < NUM_ACTION_TYPES; ++a ) {
+           action.type = (ActionType)a;
+           if(isValidAction(gamedef, &state.state, 0, &action))
+               break;
+       }
     }
 
     //[> do the action! <]
