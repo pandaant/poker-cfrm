@@ -6,7 +6,7 @@ THREADS=8
     --threads $THREADS\
     -s abstractions/infoabs_test/ca-nsss.abs\
     -m mixed_nsss\
-    --nb-samples 0,6000,6000,600\
+    --nb-samples 0,600,600,600\
     --buckets 169,10,10,10\
     --err-bounds-per-round 0,0.001,0.001,0.001
 
