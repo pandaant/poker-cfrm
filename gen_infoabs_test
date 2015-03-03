@@ -7,14 +7,16 @@ THREADS=8
     -s abstractions/infoabs_test/ca-nsss.abs\
     -m mixed_nsss\
     --nb-samples 0,1000,1000,1000\
-    --buckets 169,10,10,10
+    --buckets 169,10,10,10\
+    --err-bounds-per-round 0,0.001,0.001,0.001
 
 ./cluster-abs --handranks ../../handranks.dat\
     --threads $THREADS\
     -s abstractions/infoabs_test/ca-nsss-b.abs\
     -m mixed_nsss\
     --nb-samples 0,1000,1000,1000\
-    --buckets 169,100,100,100
+    --buckets 169,100,100,100\
+    --err-bounds-per-round 0,0.001,0.001,0.001
 
 ./cluster-abs --handranks ../../handranks.dat\
     --threads $THREADS\
@@ -23,7 +25,8 @@ THREADS=8
     --nb-samples 0,100,100,100\
     --buckets 169,10,10,10\
     --history-points 0,8,8,8\
-    --nb-hist-samples-per-round 0,200,200,200
+    --nb-hist-samples-per-round 0,200,200,200\
+    --err-bounds-per-round 0,0.001,0.001,0.001
 
 ./cluster-abs --handranks ../../handranks.dat\
     --threads $THREADS\
@@ -32,7 +35,8 @@ THREADS=8
     --nb-samples 0,200,200,200\
     --buckets 169,100,100,100\
     --history-points 0,8,8,8\
-    --nb-hist-samples-per-round 0,300,300,300
+    --nb-hist-samples-per-round 0,300,300,300\
+    --err-bounds-per-round 0,0.001,0.001,0.001
 
 ./cluster-abs --handranks ../../handranks.dat\
     --threads $THREADS\
@@ -41,7 +45,8 @@ THREADS=8
     --nb-samples 0,200,200,100\
     --buckets 169,10,10,10\
     --history-points 0,15,15,1\
-    --nb-hist-samples-per-round 0,200,200,200
+    --nb-hist-samples-per-round 0,200,200,200\
+    --err-bounds-per-round 0,0.04,0.04,0.004
 
 ./cluster-abs --handranks ../../handranks.dat\
     --threads $THREADS\
@@ -50,7 +55,8 @@ THREADS=8
     --nb-samples 0,200,200,100\
     --buckets 169,100,100,100\
     --history-points 0,10,10,1\
-    --nb-hist-samples-per-round 0,200,200,200
+    --nb-hist-samples-per-round 0,200,200,200\
+    --err-bounds-per-round 0,0.05,0.05,0.004
 
 ./cluster-abs --handranks ../../handranks.dat\
     --threads $THREADS\
@@ -59,7 +65,8 @@ THREADS=8
     --nb-samples 0,200,200,100\
     --buckets 169,10,10,10\
     --history-points 0,15,15,8\
-    --nb-hist-samples-per-round 0,200,200,200
+    --nb-hist-samples-per-round 0,200,200,200\
+    --err-bounds-per-round 0,0.04,0.04,0.005
 
 ./cluster-abs --handranks ../../handranks.dat\
     --threads $THREADS\
@@ -68,7 +75,8 @@ THREADS=8
     --nb-samples 0,200,200,100\
     --buckets 169,100,100,100\
     --history-points 0,10,10,8\
-    --nb-hist-samples-per-round 0,200,200,200
+    --nb-hist-samples-per-round 0,200,200,200\
+    --err-bounds-per-round 0,0.05,0.05,0.004
 
 ./cluster-abs --handranks ../../handranks.dat\
     --threads $THREADS\
@@ -77,7 +85,8 @@ THREADS=8
     --nb-samples 0,200,200,100\
     --buckets 169,10,10,10\
     --history-points 0,15,15,8\
-    --nb-hist-samples-per-round 0,200,200,200
+    --nb-hist-samples-per-round 0,200,200,200\
+    --err-bounds-per-round 0,0.01,0.02,0.004
 
 ./cluster-abs --handranks ../../handranks.dat\
     --threads $THREADS\
@@ -86,4 +95,5 @@ THREADS=8
     --nb-samples 0,200,200,100\
     --buckets 169,100,20,100\
     --history-points 0,10,20,8\
-    --nb-hist-samples-per-round 0,200,200,200
+    --nb-hist-samples-per-round 0,200,200,200\
+    --err-bounds-per-round 0,0.05,0.05,0.004

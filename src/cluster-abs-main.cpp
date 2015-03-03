@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
     std::ofstream tmp("tmp");
     EMDAbstractionGenerator *generator = new EMDAbstractionGenerator(
         tmp, options.nb_buckets, options.nb_samples, {100, 10, 10, 10},
-        options.nb_hist_samples_per_round, handranks, clusterrng,
+        options.nb_hist_samples_per_round,options.clustering_target_precision, handranks, clusterrng,
         options.nb_threads);
 
     uint8_t cards[7] = {((uint8_t)(hand.highcard().card() - 1)),
@@ -118,13 +118,13 @@ int main(int argc, char **argv) {
   si = new SuitIsomorphAbstractionGenerator(dump_to);
   emd = new EMDAbstractionGenerator(
       dump_to, options.nb_buckets, options.nb_samples,
-      options.num_history_points, options.nb_hist_samples_per_round, handranks,
+      options.num_history_points, options.nb_hist_samples_per_round, options.clustering_target_precision, handranks,
       clusterrng, options.nb_threads);
   ochs = new OCHSAbstractionGenerator(
       dump_to, options.nb_buckets, options.nb_samples,
-      options.num_history_points, handranks, clusterrng, options.nb_threads);
+      options.num_history_points, options.clustering_target_precision, handranks, clusterrng, options.nb_threads);
   ehs = new EHSAbstractionGenerator(dump_to, options.nb_buckets,
-                                    options.nb_samples, handranks, clusterrng,
+                                    options.nb_samples, options.clustering_target_precision, handranks, clusterrng,
                                     options.nb_threads);
 
   switch (options.metric) {
@@ -220,6 +220,10 @@ int parse_options(int argc, char **argv) {
         "metric to use for clustering (ehs,emd)")(
         "buckets,b", po::value<string>(),
         "list of how many buckets to use per round. example: 10,10,10,10")(
+        "err-bounds-per-round", po::value<string>(),
+        "determines the quality of the clustering. the clustering algorithm "
+        "will stop when the error of changing elements is smaller or equal to "
+        "the percentage for the specified round. default: 1\% for each round.")(
         "history-points", po::value<string>(),
         "list of how many dimensions a datapoint has per round (if emd or ochs "
         "is used). example: 10,10,10,10")(
@@ -260,6 +264,12 @@ int parse_options(int argc, char **argv) {
       std::cout << "number of samples per round set to: "
                 << vm["nb-samples"].as<string>() << "\n";
       options.nb_samples = str_to_int_list(vm["nb-samples"].as<string>(), ',');
+    }
+
+    if (vm.count("err-bounds-per-round")) {
+      std::cout << "error bounds per round set to: "
+                << vm["err-bounds-per-round"].as<string>() << "\n";
+      options.clustering_target_precision = str_to_dbl_list(vm["err-bounds-per-round"].as<string>(), ',');
     }
 
     if (vm.count("metric")) {

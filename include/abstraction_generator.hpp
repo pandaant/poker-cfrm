@@ -24,7 +24,8 @@ protected:
 
 public:
   AbstractionGenerator(std::ofstream &dump_to) : dump_to(&dump_to) {}
-  virtual void generate(nbgen &rng, std::vector<histogram_c> &round_centers) = 0;
+  virtual void generate(nbgen &rng,
+                        std::vector<histogram_c> &round_centers) = 0;
   virtual void generate_round(int round, nbgen &rng, histogram_c &center) = 0;
   // virtual void dump(const char *dump_name) = 0;
   virtual ~AbstractionGenerator() {}
@@ -40,6 +41,7 @@ class EHSAbstractionGenerator : public AbstractionGenerator {
   int nb_threads;
   int_c nb_buckets;
   int_c nb_samples;
+  dbl_c err_bounds;
   std::vector<ecalc::ECalc *> calc;
   hand_indexer_t indexer[4];
   boost::mt19937 &clusterrng;
@@ -51,11 +53,12 @@ public:
   }
 
   EHSAbstractionGenerator(std::ofstream &dump_to, int_c buckets_per_round,
-                          int_c samples_per_round, ecalc::Handranks *hr, boost::mt19937 &rng,
+                          int_c samples_per_round, dbl_c err_bounds,
+                          ecalc::Handranks *hr, boost::mt19937 &rng,
                           int nb_threads = 1)
-      : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round), clusterrng(rng),
-        nb_samples(samples_per_round), calc(nb_threads),
-        nb_threads(nb_threads) {
+      : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round),
+        err_bounds(err_bounds), clusterrng(rng), nb_samples(samples_per_round),
+        calc(nb_threads), nb_threads(nb_threads) {
 
     for (unsigned i = 0; i < nb_threads; ++i)
       calc[i] = new ecalc::ECalc(hr);
@@ -73,74 +76,74 @@ public:
                 << ". required space: " << (sizeof(hand_feature) * round_size) /
                                                (1024 * 1024.0 * 1024.0)
                 << " gb \n";
-      generate_round(r, rng,round_centers[r]);
+      generate_round(r, rng, round_centers[r]);
     }
   }
 
   virtual void generate_round(int round, nbgen &rng, histogram_c &center) {
     int_c board_card_sum{0, 3, 4, 5};
-      size_t round_size = indexer[round].round_size[(round == 0) ? 0 : 1];
-      std::vector<datapoint_t> features = std::vector<datapoint_t>(round_size);
+    size_t round_size = indexer[round].round_size[(round == 0) ? 0 : 1];
+    std::vector<datapoint_t> features = std::vector<datapoint_t>(round_size);
 
-      // thread variables
-      int per_block = round_size / nb_threads;
-      std::vector<size_t> thread_block_size(nb_threads, per_block);
-      thread_block_size.back() += round_size - nb_threads * per_block;
+    // thread variables
+    int per_block = round_size / nb_threads;
+    std::vector<size_t> thread_block_size(nb_threads, per_block);
+    thread_block_size.back() += round_size - nb_threads * per_block;
 
-      std::vector<std::thread> eval_threads(nb_threads);
-      size_t accumulator = 0;
-      for (int t = 0; t < nb_threads; ++t) {
-        accumulator += thread_block_size[t];
-        eval_threads[t] =
-            std::thread([t, round, accumulator, &features, &board_card_sum,
-                         &thread_block_size, this] {
-              uint8_t cards[7];
-              std::vector<ecalc::card> board(board_card_sum[round]);
-              ecalc::SingleHandlist handlist(poker::Hand(1, 2));
-              histogram_t hist(1);
+    std::vector<std::thread> eval_threads(nb_threads);
+    size_t accumulator = 0;
+    for (int t = 0; t < nb_threads; ++t) {
+      accumulator += thread_block_size[t];
+      eval_threads[t] =
+          std::thread([t, round, accumulator, &features, &board_card_sum,
+                       &thread_block_size, this] {
+            uint8_t cards[7];
+            std::vector<ecalc::card> board(board_card_sum[round]);
+            ecalc::SingleHandlist handlist(poker::Hand(1, 2));
+            histogram_t hist(1);
 
-              for (size_t i = (accumulator - thread_block_size[t]);
-                   i < accumulator; ++i) {
-                hand_unindex(&indexer[round], (round == 0) ? 0 : 1, i, cards);
-                handlist.set_hand(poker::Hand(cards[0] + 1, cards[1] + 1));
-                for (int j = 2; j < board_card_sum[round] + 2; ++j) {
-                  board[j - 2] = cards[j] + 1;
-                }
-                hist[0] = calc[t]
-                              ->evaluate_vs_random(&handlist, 1, board, {},
-                                                   nb_samples[round])[0]
-                              .pwin_tie();
-                features[i].histogram = hist;
+            for (size_t i = (accumulator - thread_block_size[t]);
+                 i < accumulator; ++i) {
+              hand_unindex(&indexer[round], (round == 0) ? 0 : 1, i, cards);
+              handlist.set_hand(poker::Hand(cards[0] + 1, cards[1] + 1));
+              for (int j = 2; j < board_card_sum[round] + 2; ++j) {
+                board[j - 2] = cards[j] + 1;
               }
-            });
-      }
+              hist[0] = calc[t]
+                            ->evaluate_vs_random(&handlist, 1, board, {},
+                                                 nb_samples[round])[0]
+                            .pwin_tie();
+              features[i].histogram = hist;
+            }
+          });
+    }
 
-      for (int t = 0; t < nb_threads; ++t)
-        eval_threads[t].join();
+    for (int t = 0; t < nb_threads; ++t)
+      eval_threads[t].join();
 
-      std::cout << "clustering " << round_size << " holdings into "
-                << nb_buckets[round] << " buckets...\n";
-      //kmeans(nb_buckets[round], features, clusterrng);
+    std::cout << "clustering " << round_size << " holdings into "
+              << nb_buckets[round] << " buckets...\n";
+    // kmeans(nb_buckets[round], features, clusterrng);
 
-      unsigned restarts = 100;
-      kmeans_center_multiple_restarts(
-          restarts, nb_buckets[round], kmeans_center_init_random, center, features,rng);
-      kmeans(nb_buckets[round], features, l2_distance, center, nb_threads, 0.0005);
+    unsigned restarts = 100;
+    kmeans_center_multiple_restarts(restarts, nb_buckets[round],
+                                    kmeans_center_init_random, center, features,
+                                    rng);
+    kmeans(nb_buckets[round], features, l2_distance, center, nb_threads,
+           err_bounds[round]);
 
-        std::cout << "writing abstraction for round to file...\n";
-        dump_to->write(reinterpret_cast<const char *>(&round),
-                       sizeof(round));
-        dump_to->write(reinterpret_cast<const char *>(&nb_buckets[round]),
-                       sizeof(nb_buckets[round]));
+    std::cout << "writing abstraction for round to file...\n";
+    dump_to->write(reinterpret_cast<const char *>(&round), sizeof(round));
+    dump_to->write(reinterpret_cast<const char *>(&nb_buckets[round]),
+                   sizeof(nb_buckets[round]));
 
-        size_t nb_entries = indexer[round].round_size[round == 0 ? 0 : 1];
-        for (size_t i = 0; i < nb_entries; ++i) {
-          dump_to->write(reinterpret_cast<const char *>(&features[i].cluster),
-                         sizeof(features[i].cluster));
-        }
-      std::cout << "done.\n";
+    size_t nb_entries = indexer[round].round_size[round == 0 ? 0 : 1];
+    for (size_t i = 0; i < nb_entries; ++i) {
+      dump_to->write(reinterpret_cast<const char *>(&features[i].cluster),
+                     sizeof(features[i].cluster));
+    }
+    std::cout << "done.\n";
   }
-
 };
 
 class EMDAbstractionGenerator : public AbstractionGenerator {
@@ -149,6 +152,7 @@ class EMDAbstractionGenerator : public AbstractionGenerator {
   int_c nb_buckets;
   int_c nb_samples;
   int_c num_history_points;
+  dbl_c err_bounds;
   dbl_c step_size;
   int_c nb_hist_samples_per_round;
   std::vector<ecalc::ECalc *> calc;
@@ -168,13 +172,15 @@ public:
 
   EMDAbstractionGenerator(std::ofstream &dump_to, int_c buckets_per_round,
                           int_c samples_per_round, int_c num_history_points,
-                          int_c nb_hist_samples_per_round, ecalc::Handranks *hr,boost::mt19937 &rng,
+                          int_c nb_hist_samples_per_round, dbl_c err_bounds,
+                          ecalc::Handranks *hr, boost::mt19937 &rng,
                           int nb_threads = 1)
-      : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round),clusterrng(rng),
-        nb_samples(samples_per_round), calc(nb_threads),
+      : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round),
+        clusterrng(rng), nb_samples(samples_per_round), calc(nb_threads),
         num_history_points(num_history_points),
         nb_hist_samples_per_round(nb_hist_samples_per_round),
-        step_size(num_history_points.size()), nb_threads(nb_threads) {
+        err_bounds(err_bounds), step_size(num_history_points.size()),
+        nb_threads(nb_threads) {
 
     for (unsigned i = 0; i < num_history_points.size(); ++i)
       step_size[i] = 1.0 / num_history_points[i];
@@ -211,7 +217,7 @@ public:
     }
 
     for (int r = 0; r < nb_buckets.size(); ++r) {
-      generate_round(r, rng,round_centers[r]);
+      generate_round(r, rng, round_centers[r]);
     }
   }
 
@@ -300,17 +306,18 @@ public:
     std::cout << "clustering " << round_size << " holdings into "
               << nb_buckets[round] << " buckets...\n";
 
-      unsigned restarts = 100;
-      kmeans_center_multiple_restarts(
-          restarts, nb_buckets[round], kmeans_center_init_random, center, features,rng);
-      unsigned nb_features = features[0].histogram.size();
-      std::vector<std::vector<precision_t>> cost_mat;
-      gen_cost_matrix(nb_features,nb_features, cost_mat);
-      kmeans(nb_buckets[round], features, emd_forwarder, center, nb_threads, 0.0005,&cost_mat);
+    unsigned restarts = 100;
+    kmeans_center_multiple_restarts(restarts, nb_buckets[round],
+                                    kmeans_center_init_random, center, features,
+                                    rng);
+    unsigned nb_features = features[0].histogram.size();
+    std::vector<std::vector<precision_t>> cost_mat;
+    gen_cost_matrix(nb_features, nb_features, cost_mat);
+    kmeans(nb_buckets[round], features, emd_forwarder, center, nb_threads,
+           err_bounds[round], &cost_mat);
 
     std::cout << "writing abstraction for round to file...\n";
-        dump_to->write(reinterpret_cast<const char *>(&round),
-                       sizeof(round));
+    dump_to->write(reinterpret_cast<const char *>(&round), sizeof(round));
     dump_to->write(reinterpret_cast<const char *>(&nb_buckets[round]),
                    sizeof(nb_buckets[round]));
 
@@ -401,6 +408,7 @@ class OCHSAbstractionGenerator : public AbstractionGenerator {
 
   int nb_threads;
   int_c nb_buckets;
+  dbl_c err_bounds;
   int_c nb_samples;
   int_c num_opponent_clusters;
   dbl_c step_size;
@@ -416,10 +424,11 @@ public:
 
   OCHSAbstractionGenerator(std::ofstream &dump_to, int_c buckets_per_round,
                            int_c samples_per_round, int_c num_opponent_clusters,
-                           ecalc::Handranks *hr, boost::mt19937 &rng, int nb_threads = 1)
-      : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round),clusterrng(rng),
-        nb_samples(samples_per_round), calc(nb_threads),
-        num_opponent_clusters(num_opponent_clusters),
+                           dbl_c err_bounds, ecalc::Handranks *hr,
+                           boost::mt19937 &rng, int nb_threads = 1)
+      : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round),
+        clusterrng(rng), nb_samples(samples_per_round), calc(nb_threads),
+        num_opponent_clusters(num_opponent_clusters), err_bounds(err_bounds),
         step_size(num_opponent_clusters.size()), nb_threads(nb_threads) {
 
     for (unsigned i = 0; i < num_opponent_clusters.size(); ++i)
@@ -445,7 +454,7 @@ public:
     }
 
     for (int r = 0; r < nb_buckets.size(); ++r) {
-      generate_round(r, rng,round_centers[r]);
+      generate_round(r, rng, round_centers[r]);
       // exit(1);
     }
   }
@@ -469,23 +478,25 @@ public:
                  .pwin_tie());
     }
 
-      unsigned buckets_empty = 0;
+    unsigned buckets_empty = 0;
     do {
-      //kmeans(num_opponent_clusters[round], ochs_hands, clusterrng);
+      // kmeans(num_opponent_clusters[round], ochs_hands, clusterrng);
       histogram_c ocenter;
       unsigned restarts = 100;
-      kmeans_center_multiple_restarts(
-          restarts, num_opponent_clusters[round], kmeans_center_init_random, ocenter, ochs_hands,rng);
+      kmeans_center_multiple_restarts(restarts, num_opponent_clusters[round],
+                                      kmeans_center_init_random, ocenter,
+                                      ochs_hands, rng);
       unsigned nb_features = ochs_hands[0].histogram.size();
-      kmeans(num_opponent_clusters[round], ochs_hands, l2_distance, ocenter, nb_threads, 0.005);
+      kmeans(num_opponent_clusters[round], ochs_hands, l2_distance, ocenter,
+             nb_threads, 0.005);
       std::vector<unsigned> elem_buckets(num_opponent_clusters[round], 0);
-      for(unsigned x = 0; x < ochs_hands.size(); ++x){
-       elem_buckets[ochs_hands[x].cluster]++; 
+      for (unsigned x = 0; x < ochs_hands.size(); ++x) {
+        elem_buckets[ochs_hands[x].cluster]++;
       }
       buckets_empty = 0;
-      for(unsigned x = 0; x < elem_buckets.size(); ++x){
-          if(elem_buckets[x] == 0)
-              ++buckets_empty;
+      for (unsigned x = 0; x < elem_buckets.size(); ++x) {
+        if (elem_buckets[x] == 0)
+          ++buckets_empty;
       }
     } while (buckets_empty > 0);
 
@@ -552,9 +563,9 @@ public:
                       .pwin_tie();
             }
             catch (std::runtime_error e) {
-              //std::cout << poker::Hand(cards[0] + 1, cards[1] + 1).str()
-                        //<< ": lol i got it. setting shit cluster " << ochs
-                        //<< " to zero\n";
+              // std::cout << poker::Hand(cards[0] + 1, cards[1] + 1).str()
+              //<< ": lol i got it. setting shit cluster " << ochs
+              //<< " to zero\n";
 
               features[i].histogram[ochs] = 0;
             }
@@ -563,14 +574,15 @@ public:
             // cards[1]+1).str() << " idx " << ochs << ": "<<
             // features[i].histogram[ochs] << "\n";
           }
-          //TODO investigate why normalizing breaks clustering in turn and river
+          // TODO investigate why normalizing breaks clustering in turn and
+          // river
           // normalize
-          //std::cout << i << ":\t\t";
-          //for (unsigned ochs = 0; ochs < opp_clusters.size(); ++ochs) {
-            //features[i].histogram[ochs] /= mass_sum;
-            ////std::cout << features[i].histogram[ochs] << " ";
+          // std::cout << i << ":\t\t";
+          // for (unsigned ochs = 0; ochs < opp_clusters.size(); ++ochs) {
+          // features[i].histogram[ochs] /= mass_sum;
+          ////std::cout << features[i].histogram[ochs] << " ";
           //}
-          //std::cout << "\n";
+          // std::cout << "\n";
         }
 
         // for (unsigned j = 0; j < features[i].histogram.size(); ++j) {
@@ -587,20 +599,19 @@ public:
 
     std::cout << "clustering " << round_size << " holdings into "
               << nb_buckets[round] << " buckets...\n";
-    //kmeans_l2(nb_buckets[round], features, clusterrng,  nb_threads);
-      unsigned restarts = 100;
-      kmeans_center_multiple_restarts(
-          restarts, nb_buckets[round], kmeans_center_init_random, center, features,rng);
-      kmeans(nb_buckets[round], features, l2_distance, center, nb_threads, 0.005);
-        dump_to->write(reinterpret_cast<const char *>(&round),
-
-                       sizeof(round));
+    // kmeans_l2(nb_buckets[round], features, clusterrng,  nb_threads);
+    unsigned restarts = 100;
+    kmeans_center_multiple_restarts(restarts, nb_buckets[round],
+                                    kmeans_center_init_random, center, features,
+                                    rng);
+    kmeans(nb_buckets[round], features, l2_distance, center, nb_threads, err_bounds[round]);
+    dump_to->write(reinterpret_cast<const char *>(&round), sizeof(round));
     dump_to->write(reinterpret_cast<const char *>(&nb_buckets[round]),
                    sizeof(nb_buckets[round]));
 
     size_t nb_entries = indexer[round].round_size[round == 0 ? 0 : 1];
     for (size_t i = 0; i < nb_entries; ++i) {
-        //std::cout << i << " = " << features[i].cluster << "\n";
+      // std::cout << i << " = " << features[i].cluster << "\n";
       dump_to->write(reinterpret_cast<const char *>(&features[i].cluster),
                      sizeof(features[i].cluster));
     }
@@ -654,9 +665,10 @@ class PotentialAwareAbstractionGenerator : public AbstractionGenerator {
   int potentialround;
 
 public:
-  //potentialround is the round for which round +1 has to be calculated first.
-  PotentialAwareAbstractionGenerator(std::ofstream &dump_to, int potentialround,
-                            std::vector<AbstractionGenerator *> generators);
+  // potentialround is the round for which round +1 has to be calculated first.
+  PotentialAwareAbstractionGenerator(
+      std::ofstream &dump_to, int potentialround,
+      std::vector<AbstractionGenerator *> generators);
 
   ~PotentialAwareAbstractionGenerator();
   virtual void generate(nbgen &rng, std::vector<histogram_c> &round_centers);
