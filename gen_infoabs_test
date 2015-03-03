@@ -1,0 +1,89 @@
+#!/bin/bash
+
+THREADS=8
+
+./cluster-abs --handranks ../../handranks.dat\
+    --threads $THREADS\
+    -s abstractions/infoabs_test/ca-nsss.abs\
+    -m mixed_nsss\
+    --nb-samples 0,1000,1000,1000\
+    --buckets 169,10,10,10
+
+./cluster-abs --handranks ../../handranks.dat\
+    --threads $THREADS\
+    -s abstractions/infoabs_test/ca-nsss-b.abs\
+    -m mixed_nsss\
+    --nb-samples 0,1000,1000,1000\
+    --buckets 169,100,100,100
+
+./cluster-abs --handranks ../../handranks.dat\
+    --threads $THREADS\
+    -s abstractions/infoabs_test/ca-nooo.abs\
+    -m mixed_nooo\
+    --nb-samples 0,100,100,100\
+    --buckets 169,10,10,10\
+    --history-points 0,8,8,8\
+    --nb-hist-samples-per-round 0,200,200,200
+
+./cluster-abs --handranks ../../handranks.dat\
+    --threads $THREADS\
+    -s abstractions/infoabs_test/ca-nooo-b.abs\
+    -m mixed_nooo\
+    --nb-samples 0,200,200,200\
+    --buckets 169,100,100,100\
+    --history-points 0,8,8,8\
+    --nb-hist-samples-per-round 0,300,300,300
+
+./cluster-abs --handranks ../../handranks.dat\
+    --threads $THREADS\
+    -s abstractions/infoabs_test/ca-nees.abs\
+    -m mixed_nees\
+    --nb-samples 0,200,200,100\
+    --buckets 169,10,10,10\
+    --history-points 0,15,15,1\
+    --nb-hist-samples-per-round 0,200,200,200
+
+./cluster-abs --handranks ../../handranks.dat\
+    --threads $THREADS\
+    -s abstractions/infoabs_test/ca-nees-b.abs\
+    -m mixed_nees\
+    --nb-samples 0,200,200,100\
+    --buckets 169,100,100,100\
+    --history-points 0,10,10,1\
+    --nb-hist-samples-per-round 0,200,200,200
+
+./cluster-abs --handranks ../../handranks.dat\
+    --threads $THREADS\
+    -s abstractions/infoabs_test/ca-neeo.abs\
+    -m mixed_neeo\
+    --nb-samples 0,200,200,100\
+    --buckets 169,10,10,10\
+    --history-points 0,15,15,8\
+    --nb-hist-samples-per-round 0,200,200,200
+
+./cluster-abs --handranks ../../handranks.dat\
+    --threads $THREADS\
+    -s abstractions/infoabs_test/ca-neeo-b.abs\
+    -m mixed_neeo\
+    --nb-samples 0,200,200,100\
+    --buckets 169,100,100,100\
+    --history-points 0,10,10,8\
+    --nb-hist-samples-per-round 0,200,200,200
+
+./cluster-abs --handranks ../../handranks.dat\
+    --threads $THREADS\
+    -s abstractions/infoabs_test/ca-npeo.abs\
+    -m mixed_npeo\
+    --nb-samples 0,200,200,100\
+    --buckets 169,10,10,10\
+    --history-points 0,15,15,8\
+    --nb-hist-samples-per-round 0,200,200,200
+
+./cluster-abs --handranks ../../handranks.dat\
+    --threads $THREADS\
+    -s abstractions/infoabs_test/ca-npeo-b.abs\
+    -m mixed_npeo\
+    --nb-samples 0,200,200,100\
+    --buckets 169,100,20,100\
+    --history-points 0,10,20,8\
+    --nb-hist-samples-per-round 0,200,200,200
