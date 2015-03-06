@@ -22,7 +22,7 @@ using std::exception;
 namespace ch = std::chrono;
 namespace po = boost::program_options;
 
-#define CFR_SAMPLER ChanceSamplingCFR
+#define CFR_SAMPLER OutcomeSamplingCFR
 
 struct {
   game_t type = leduc;
@@ -37,7 +37,7 @@ struct {
   int nb_threads = 6;
   size_t seed = time(NULL);
 
-  size_t runtime = 50;
+  double runtime = 50;
   size_t nb_target_iterations = 0;
   double checkpoint_time = -1;
 
@@ -45,8 +45,9 @@ struct {
   string init_strategy = "";
 
   bool dump_avg_strategy = true;
-  bool print_strategy = true;
-  bool print_best_response = true;
+  bool print_strategy = false;
+  bool print_best_response = false;
+  bool print_abstract_best_response = true;
 } options;
 
 const Game *gamedef;
@@ -137,6 +138,20 @@ int main(int argc, char **argv) {
   vector<std::thread> iter_threads(options.nb_threads);
   vector<size_t> iter_threads_cnt(options.nb_threads, 0);
 
+  for (unsigned i = 0; i < 100001; ++i) {
+    cfr->iterate(rng);
+    if (i % 100 == 0) {
+      vector<double> br = cfr->best_response();
+      cout << ch::duration_cast<ch::milliseconds>(ch::steady_clock::now() -
+                                            start).count() << "\t" << br[0] + br[1] << "\n";
+    }
+    //if (i % 100000 == 0 || i == 0) {
+      //std::string checkfile = options.dump_strategy + "." + comma_format(i==0 ? 0 : (i/100000));
+      //cfr->dump((char *)checkfile.c_str());
+    //}
+  }
+  exit(1);
+
   // start threads
   for (int i = 0; i < options.nb_threads; ++i) {
     iter_threads[i] = std::thread([&stop_threads, &pause_threads, &rng, &cfr, i,
@@ -154,7 +169,7 @@ int main(int argc, char **argv) {
   // blast away as long we have time
   while (ch::duration_cast<ch::milliseconds>(ch::steady_clock::now() - start)
              .count() <= runtime.count()) {
-    std::this_thread::sleep_for(ch::milliseconds(500));
+    std::this_thread::sleep_for(ch::milliseconds(10));
     if (options.checkpoint_time < 0 ||
         ch::duration_cast<ch::milliseconds>(ch::steady_clock::now() -
                                             checkpoint_start).count() <=
@@ -168,6 +183,12 @@ int main(int argc, char **argv) {
     if (options.print_best_response) {
       vector<double> br = cfr->best_response();
       cout << "BR :" << br[0] << " + " << br[1] << " = " << br[0] + br[1]
+           << "\n";
+    }
+
+    if (options.print_abstract_best_response) {
+      vector<double> br = cfr->abstract_best_response();
+      cout << "ABR :" << br[0] << " + " << br[1] << " = " << br[0] + br[1]
            << "\n";
     }
 
@@ -234,7 +255,7 @@ int parse_options(int argc, char **argv) {
         "action-abstraction-param,n",
         po::value<string>(&options.action_abs_param),
         "parameter passed to the action abstraction.")(
-        "runtime,r", po::value<size_t>(&options.runtime), "max runtime in seconds")(
+        "runtime,r", po::value<double>(&options.runtime), "max runtime in seconds")(
         "iterations,u", po::value<size_t>(&options.nb_target_iterations), "if specified. nb iterations is checked at checkpoints and the algorithm is stopped if iterations are reached.")(
         "checkpoint,k", po::value<double>(&options.checkpoint_time),
         "checkpoint time in seconds. (if iterations are used this is the number of iterations for a checkpoint.")(
@@ -246,6 +267,8 @@ int parse_options(int argc, char **argv) {
         "print strategy in human readable format")(
         "print-best-response,b", po::bool_switch(&options.print_best_response),
         "calculate best response at checkpoints.")(
+        "print-abstract-best-response,x", po::bool_switch(&options.print_abstract_best_response),
+        "calculate best response of the abstract game at checkpoints. ( if game is to big for normal br )")(
         "threads", po::value<int>(&options.nb_threads),
         "set number of threads to use. default: 1")(
         "seed", po::value<size_t>(&options.seed),

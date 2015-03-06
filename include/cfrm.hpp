@@ -50,6 +50,15 @@ public:
   vector<double> get_normalized_avg_strategy(uint64_t idx, card_c hand,
                                              card_c board, int round);
 
+  // calculate best response of the abstract game
+  std::vector<double> abstract_best_response();
+  vector<double> abstract_br(INode *curr_node, vector<double> op,
+                             unsigned player, std::string path);
+  vector<double> abstract_br_infoset(INode *curr_node, vector<double> op,
+                                     unsigned player, std::string path);
+  vector<double> abstract_br_terminal(INode *curr_node, vector<double> op,
+                                      unsigned player, std::string path);
+
   std::vector<vector<double>> br_public_chance(INode *curr_node,
                                                vector<vector<double>> op,
                                                std::string path );

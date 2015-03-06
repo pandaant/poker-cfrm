@@ -1,0 +1,29 @@
+#!/bin/bash
+
+THREADS=6
+NB_ITERATIONS=5000000
+
+./cfrm --seed 0 -t holdem -g ../../games/holdem.nolimit.2p.reverse_blinds.game\
+    -c cluster -a potrel -n 1 -r 99999 -k 120 --threads $THREADS\
+    -u $NB_ITERATIONS -m abstractions/infoabs_test/ca-nees.abs\
+    -d strategies/info_abs_test/ca-nees.strat
+
+./cfrm --seed 0 -t holdem -g ../../games/holdem.nolimit.2p.reverse_blinds.game\
+    -c cluster -a potrel -n 1 -r 99999 -k 120 --threads $THREADS\
+    -u $NB_ITERATIONS -m abstractions/infoabs_test/ca-nooo-b.abs\
+    -d strategies/info_abs_test/ca-nooo-b.strat
+
+./cfrm --seed 0 -t holdem -g ../../games/holdem.nolimit.2p.reverse_blinds.game\
+    -c cluster -a potrel -n 1 -r 99999 -k 120 --threads $THREADS\
+    -u $NB_ITERATIONS -m abstractions/infoabs_test/ca-nooo.abs\
+    -d strategies/info_abs_test/ca-nooo.strat
+
+./cfrm --seed 0 -t holdem -g ../../games/holdem.nolimit.2p.reverse_blinds.game\
+    -c cluster -a potrel -n 1 -r 99999 -k 120 --threads $THREADS\
+    -u $NB_ITERATIONS -m abstractions/infoabs_test/ca-nsss.abs\
+    -d strategies/info_abs_test/ca-nsss.strat
+
+./cfrm --seed 0 -t holdem -g ../../games/holdem.nolimit.2p.reverse_blinds.game\
+    -c cluster -a potrel -n 1 -r 99999 -k 120 --threads $THREADS\
+    -u $NB_ITERATIONS -m abstractions/infoabs_test/ca-nsss-b.abs\
+    -d strategies/info_abs_test/ca-nsss-b.strat

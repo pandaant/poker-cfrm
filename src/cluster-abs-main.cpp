@@ -67,7 +67,6 @@ template <class T> std::string comma_format(T value);
 int main(int argc, char **argv) {
   if (parse_options(argc, argv) == 1)
     return 1;
-  cout << sizeof(double) << "," << sizeof(float) << "\n";
 
   cout << "initializing rng with seed: " << options.seed << "\n";
   nbgen rng(options.seed);

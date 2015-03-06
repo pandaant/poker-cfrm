@@ -85,25 +85,35 @@ class ClusterCardAbstraction : public CardAbstraction {
     unsigned cluster;
   };
   int_c nb_buckets;
-  std::vector<ecalc::ECalc*> calc;
+  std::vector<ecalc::ECalc *> calc;
   hand_indexer_t indexer[4];
-  std::vector<std::vector<unsigned> > buckets;
 
 public:
-  ClusterCardAbstraction(const Game *game, string param)
-      : nb_buckets(game->numRounds), buckets(game->numRounds) {
+  std::vector<std::vector<unsigned>> buckets;
+  
+  ClusterCardAbstraction() {}
+
+  ClusterCardAbstraction(const Game *game, string param) {
+    init(game->numRounds, param);
+  }
+
+  void init(int nb_rounds, string load_from) {
+    this->nb_buckets = int_c(nb_rounds);
+    this->buckets = std::vector<std::vector<unsigned>>(nb_rounds);
     assert(hand_indexer_init(1, (uint8_t[]) {2}, &indexer[0]));
     assert(hand_indexer_init(2, (uint8_t[]) {2, 3}, &indexer[1]));
     assert(hand_indexer_init(2, (uint8_t[]) {2, 4}, &indexer[2]));
     assert(hand_indexer_init(2, (uint8_t[]) {2, 5}, &indexer[3]));
 
-    std::ifstream file(param.c_str(), std::ios::in | std::ios::binary);
+    std::ifstream file(load_from.c_str(), std::ios::in | std::ios::binary);
 
     int round;
-    for (size_t i = 0; i < game->numRounds; ++i) {
+    for (size_t i = 0; i < nb_rounds; ++i) {
       file.read(reinterpret_cast<char *>(&round), sizeof(round));
-      file.read(reinterpret_cast<char *>(&nb_buckets[round]), sizeof(nb_buckets[round]));
-      buckets[i] = std::vector<unsigned>(indexer[round].round_size[round == 0 ? 0 : 1]);
+      file.read(reinterpret_cast<char *>(&nb_buckets[round]),
+                sizeof(nb_buckets[round]));
+      buckets[i] =
+          std::vector<unsigned>(indexer[round].round_size[round == 0 ? 0 : 1]);
       for (unsigned j = 0; j < buckets[round].size(); ++j) {
         file.read(reinterpret_cast<char *>(&buckets[round][j]),
                   sizeof(buckets[round][j]));
@@ -111,22 +121,21 @@ public:
     }
   }
 
-  ~ClusterCardAbstraction(){ 
-  }
+  ~ClusterCardAbstraction() {}
 
   virtual unsigned get_nb_buckets(const Game *game, int round) {
     return nb_buckets[round];
   }
 
   virtual int map_hand_to_bucket(card_c hand, card_c board, int round) {
-      uint8_t cards[7];
-      for(unsigned i = 0; i < hand.size(); ++i)
-          cards[i] = hand[i];
-      for(unsigned i = 2; i < board.size()+2; ++i)
-          cards[i] = board[i-2];
-     
-      hand_index_t index = hand_index_last(&indexer[round], cards);
-      return buckets[round][index];
+    uint8_t cards[7];
+    for (unsigned i = 0; i < hand.size(); ++i)
+      cards[i] = hand[i];
+    for (unsigned i = 2; i < board.size() + 2; ++i)
+      cards[i] = board[i - 2];
+
+    hand_index_t index = hand_index_last(&indexer[round], cards);
+    return buckets[round][index];
   }
 };
 

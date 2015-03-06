@@ -46,7 +46,7 @@ public:
     // get action at state
     if (curr_node->is_terminal()) {
       // we could have been pushed off tree.
-      std::cout << "keine actions mehr in terminal state " << path << "\n";
+      //std::cout << "keine actions mehr in terminal state " << path << "\n";
       return NULL;
     }
     InformationSetNode *node = (InformationSetNode *)curr_node;
@@ -58,7 +58,7 @@ public:
     int max_actions = state->numActions[round];
     if (curr_action >= max_actions) {
       assert(round == state->round);
-         std::cout << "returning found path: " << path << "\n";
+         //std::cout << "returning found path: " << path << "\n";
       return curr_node;
     }
 
@@ -78,11 +78,11 @@ public:
 
     // raise actions
     if (child == NULL) {
-      std::cout << "raise raise to map: " << action.size << "\n";
+      //std::cout << "raise raise to map: " << action.size << "\n";
       std::vector<double> sizes(node->get_children().size() - first_raise_idx);
       for (unsigned i = first_raise_idx; i < node->get_children().size(); ++i) {
         sizes[i - first_raise_idx] = node->get_children()[i]->get_action().size;
-        std::cout << "raise: " << sizes[i - first_raise_idx] << "\n";
+        //std::cout << "raise: " << sizes[i - first_raise_idx] << "\n";
       }
 
       unsigned lower_bound, upper_bound;
@@ -90,7 +90,7 @@ public:
       int abstract_size = mapper.map_rand(sizes, action.size);
       unsigned unused_bound =
           abstract_size == lower_bound ? upper_bound : lower_bound;
-      std::cout << "abs size: " << abstract_size << "\n";
+      //std::cout << "abs size: " << abstract_size << "\n";
       child = node->get_children()[first_raise_idx + abstract_size];
 
       // check if tree can be traversed in that node. if no, take the unused
