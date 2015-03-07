@@ -84,11 +84,11 @@ class ClusterCardAbstraction : public CardAbstraction {
     double value;
     unsigned cluster;
   };
-  int_c nb_buckets;
   std::vector<ecalc::ECalc *> calc;
   hand_indexer_t indexer[4];
 
 public:
+  int_c nb_buckets;
   std::vector<std::vector<unsigned>> buckets;
   
   ClusterCardAbstraction() {}

@@ -63,7 +63,7 @@ player: $(C_OBJ_FILES) $(CPP_OBJ_FILES) prepare
 	$(CXX) $(INCLUDES) $(OBJ_PATH)player-main.o $(CPP_OBJ_FILES_CORE) $(C_OBJ_FILES) $(CPP_LIBRARIES) -o player 
 
 clean:
-	rm -r -f obj cfrm player cluster-abs potenatial-abs
+	rm -r -f obj cfrm player cluster-abs potential-abs
 	rm -f $(DEP_FILES)
 
 .PHONY: clean all cfrm player potential-abs

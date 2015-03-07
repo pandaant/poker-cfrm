@@ -22,7 +22,7 @@ using std::exception;
 namespace ch = std::chrono;
 namespace po = boost::program_options;
 
-#define CFR_SAMPLER OutcomeSamplingCFR
+#define CFR_SAMPLER ChanceSamplingCFR
 
 struct {
   game_t type = leduc;
@@ -138,19 +138,19 @@ int main(int argc, char **argv) {
   vector<std::thread> iter_threads(options.nb_threads);
   vector<size_t> iter_threads_cnt(options.nb_threads, 0);
 
-  for (unsigned i = 0; i < 100001; ++i) {
-    cfr->iterate(rng);
-    if (i % 100 == 0) {
-      vector<double> br = cfr->best_response();
-      cout << ch::duration_cast<ch::milliseconds>(ch::steady_clock::now() -
-                                            start).count() << "\t" << br[0] + br[1] << "\n";
-    }
-    //if (i % 100000 == 0 || i == 0) {
-      //std::string checkfile = options.dump_strategy + "." + comma_format(i==0 ? 0 : (i/100000));
-      //cfr->dump((char *)checkfile.c_str());
+  //for (unsigned i = 0; i < 100001; ++i) {
+    //cfr->iterate(rng);
+    //if (i % 100 == 0) {
+      //vector<double> br = cfr->best_response();
+      //cout << ch::duration_cast<ch::milliseconds>(ch::steady_clock::now() -
+                                            //start).count() << "\t" << br[0] + br[1] << "\n";
     //}
-  }
-  exit(1);
+    ////if (i % 100000 == 0 || i == 0) {
+      ////std::string checkfile = options.dump_strategy + "." + comma_format(i==0 ? 0 : (i/100000));
+      ////cfr->dump((char *)checkfile.c_str());
+    ////}
+  //}
+  //exit(1);
 
   // start threads
   for (int i = 0; i < options.nb_threads; ++i) {
