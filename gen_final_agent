@@ -1,0 +1,31 @@
+#!/bin/bash
+
+THREADS=8
+POTREL="0.5,1,9999"
+NB_ITERATIONS=10000
+
+./cluster-abs --handranks ../../handranks.dat\
+	--threads $THREADS\
+	-s abstractions/final-agent-npeo-pre.abs\
+	-m mixed_neeo\
+	--nb-samples 0,2,500,500\
+	--buckets 169,2,10,500\
+	--history-points 0,2,6,8\
+	--nb-hist-samples-per-round 0,1,200,200\
+	--err-bounds-per-round 0,0.99,0.03,0.001
+
+./potential-abs -p 1\
+	-l abstractions/final-agent-npeo-pre.abs\
+	-s abstractions/final-agent-npeo.abs\
+	--threads $THREADS -b 100\
+	--handranks ../../handranks.dat\
+	--seed 0
+
+./cfrm --seed 0 -t holdem \
+	--handranks ../../handranks.dat\
+	-g ../../games/holdem.nolimit.2p.reverse_blinds.game\
+	-c cluster -a potrel\
+	-n $POTREL -r 99999 -k 600 --threads $THREADS\
+	-u $NB_ITERATIONS -m abstractions/final-agent-npeo.abs\
+	-d strategies/final-agent.strat
+
