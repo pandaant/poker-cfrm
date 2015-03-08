@@ -1,8 +1,8 @@
 #!/bin/bash
 
 THREADS=8
-POTREL="0.5,1,9999"
-NB_ITERATIONS=10000
+POTREL="0.4,0.8,1.2,2,5,9999"
+TIME=86400
 
 ./cluster-abs --handranks ../../handranks.dat\
 	--threads $THREADS\
@@ -25,7 +25,7 @@ NB_ITERATIONS=10000
 	--handranks ../../handranks.dat\
 	-g ../../games/holdem.nolimit.2p.reverse_blinds.game\
 	-c cluster -a potrel\
-	-n $POTREL -r 99999 -k 600 --threads $THREADS\
-	-u $NB_ITERATIONS -m abstractions/final-agent-npeo.abs\
+	-n $POTREL -r 86400 -k 10000 --threads $THREADS\
+	-m abstractions/final-agent-npeo.abs\
 	-d strategies/final-agent.strat
 
