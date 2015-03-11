@@ -1,5 +1,8 @@
 set term png medium size 400, 320
 set logscale xy
+set xlabel "Iterations"
+set ylabel "Exploitability"
+set title "No-Limit Leduc"
 
 set output "leduc_sampler.png"
 plot "leduc.data" using 1:2 title 'Chance Sampling' with lines,\

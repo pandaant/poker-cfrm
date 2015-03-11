@@ -35,7 +35,7 @@ CPP_OBJ_FILES_CORE = $(filter-out $(CPP_EXCLUDE), $(CPP_OBJ_FILES))
 
 DEP_FILES = $(CPP_OBJ_FILES:.o=.d)
 
-all: prepare $(C_OBJ_FILES) $(CPP_OBJ_FILES) cfrm player cluster-abs potenatial-abs
+all: prepare $(C_OBJ_FILES) $(CPP_OBJ_FILES) cfrm player cluster-abs potential-abs
 
 prepare:
 	mkdir -p obj/{release,debug}

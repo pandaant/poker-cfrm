@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
   // play the gamedef!
   while (fgets(line, MAX_LINE_LEN, fromServer)) {
     // line = "MATCHSTATE:1:994:r:|Ks";
-    // std::cout << "INPUT: " << line << "\n";
+     std::cout << "INPUT: " << line << "\n";
 
     /* ignore comments */
     if (line[0] == '#' || line[0] == ';') {
@@ -132,9 +132,9 @@ int main(int argc, char **argv) {
     line[len] = ':';
     ++len;
 
-    char *c = new char[300];
-    printState(gamedef, &state.state, 300, c);
-    printf("%s\n", c);
+    //char *c = new char[300];
+    //printState(gamedef, &state.state, 300, c);
+    //printf("%s\n", c);
 
     // lookup current node we are in
     InformationSetNode *curr_node = (InformationSetNode *)cfr->lookup_state(
@@ -176,9 +176,9 @@ int main(int argc, char **argv) {
         int action_idx = d(rng);
         action = curr_node->get_children()[action_idx]->get_action();
         --max_tries;
-        std::cout << "#" << max_tries
-                  << " choosen action: " << ActionsStr[action.type] << " = "
-                  << action.size << "\n";
+        //std::cout << "#" << max_tries
+                  //<< " choosen action: " << ActionsStr[action.type] << " = "
+                  //<< action.size << "\n";
       } while (!isValidAction(gamedef, &state.state, 0, &action) ||
                max_tries > 0);
 
