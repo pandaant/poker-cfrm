@@ -12,6 +12,19 @@ extern "C" {
 
 #define CFR_SAMPLER ChanceSamplingCFR
 
+void threshold_strategy(std::vector<double> &strategy, double threshold){
+  double sum = 0;
+  for (unsigned i = 0; i < strategy.size(); ++i) {
+    if (strategy[i] < threshold)
+      strategy[i] = 0;
+    sum += strategy[i];
+  }
+
+  for (unsigned i = 0; i < strategy.size(); ++i) {
+    strategy[i] = strategy[i] == 0 ? 0 : (strategy[i]/sum);
+  }
+}
+
 using namespace std;
 namespace ch = std::chrono;
 namespace po = boost::program_options;
@@ -33,6 +46,8 @@ struct {
   string action_abs_param = "";
 
   string init_strategy = "";
+
+  double threshold = 0.20;
 } options;
 
 const Game *gamedef;
@@ -164,6 +179,7 @@ int main(int argc, char **argv) {
 
       auto strategy = cfr->get_normalized_avg_strategy(
           curr_node->get_idx(), hand, board, state.state.round);
+      threshold_strategy(strategy,options.threshold);
 
       // choose according to distribution
       // std::cout << "strategy size: " << strategy.size() << "\t child size: "
