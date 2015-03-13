@@ -22,7 +22,7 @@ using std::exception;
 namespace ch = std::chrono;
 namespace po = boost::program_options;
 
-#define CFR_SAMPLER ChanceSamplingCFR
+#define CFR_SAMPLER ExternalSamplingCFR
 
 struct {
   game_t type = leduc;
@@ -58,6 +58,7 @@ void read_game(char *game_definition);
 template <class T> std::string comma_format(T value);
 
 int main(int argc, char **argv) {
+unsigned curr_check = 1;
   if (parse_options(argc, argv) == 1)
     return 1;
 
@@ -196,9 +197,10 @@ int main(int argc, char **argv) {
       size_t iter_cnt_sum = 0;
       for (unsigned i = 0; i < iter_threads_cnt.size(); ++i)
         iter_cnt_sum += iter_threads_cnt[i];
-      std::string checkfile = options.dump_strategy; //+ "." + comma_format(iter_cnt_sum) + "it" ;
+      std::string checkfile = options.dump_strategy + "." + std::to_string(curr_check);
       cout << "Saving current strategy to" << checkfile << "...\n";
       cfr->dump((char *)checkfile.c_str());
+      ++curr_check;
     }
 
     size_t iter_cnt_sum = 0;
