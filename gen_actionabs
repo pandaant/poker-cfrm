@@ -1,0 +1,9 @@
+./cfrm --handranks ../../handranks.dat -t holdem -c cluster -m abstractions/ehs.4x5.abs -a potrel --threads 8 -g ../../games/holdem.nolimit.2p.reverse_blinds.game -r 100000 -u 10000 -k 100 -d strategies/action_abs_test/aa-0.5:1.10k.strat -n 0.5,1,9999
+
+#./cfrm --handranks ../../handranks.dat -t holdem -c cluster -m abstractions/ehs.4x5.abs -a potrel --threads 8 -g ../../games/holdem.nolimit.2p.reverse_blinds.game -r 100000 -u 10000 -k 600 -d strategies/action_abs_test/aa-0.5:1:1.5.10k.strat -n 0.5,1,1.5,9999
+
+#./cfrm --handranks ../../handranks.dat -t holdem -c cluster -m abstractions/ehs.4x5.abs -a potrel --threads 8 -g ../../games/holdem.nolimit.2p.reverse_blinds.game -r 100000 -u 10000 -k 600 -d strategies/action_abs_test/aa-0.5:1.5:3.10k.strat -n 0.5,1.5,3,9999
+
+#./cfrm --handranks ../../handranks.dat -t holdem -c cluster -m abstractions/ehs.4x5.abs -a potrel --threads 8 -g ../../games/holdem.nolimit.2p.reverse_blinds.game -r 100000 -u 10000 -k 600 -d strategies/action_abs_test/aa-0.4:0.9:2.10k.strat -n 0.4,0.9,2,9999
+
+#./cfrm --handranks ../../handranks.dat -t holdem -c cluster -m abstractions/ehs.4x5.abs -a potrel --threads 8 -g ../../games/holdem.nolimit.2p.reverse_blinds.game -r 100000 -u 10000 -k 600 -d strategies/action_abs_test/aa-0.5:1:1.5:2:3.10k.strat -n 0.5,1,1.5,2,3,9999
