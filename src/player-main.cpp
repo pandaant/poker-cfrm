@@ -12,7 +12,7 @@ extern "C" {
 
 #define CFR_SAMPLER ChanceSamplingCFR
 
-void threshold_strategy(std::vector<double> &strategy, double threshold){
+void threshold_strategy(std::vector<double> &strategy, double threshold) {
   double sum = 0;
   for (unsigned i = 0; i < strategy.size(); ++i) {
     if (strategy[i] < threshold)
@@ -21,7 +21,7 @@ void threshold_strategy(std::vector<double> &strategy, double threshold){
   }
 
   for (unsigned i = 0; i < strategy.size(); ++i) {
-    strategy[i] = strategy[i] == 0 ? 0 : (strategy[i]/sum);
+    strategy[i] = strategy[i] == 0 ? 0 : (strategy[i] / sum);
   }
 }
 
@@ -47,7 +47,7 @@ struct {
 
   string init_strategy = "";
 
-  double threshold = 0.20;
+  double threshold = -1;
 } options;
 
 const Game *gamedef;
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
   struct timeval tv;
   double probs[NUM_ACTION_TYPES];
   double actionProbs[NUM_ACTION_TYPES];
-  char line[MAX_LINE_LEN];
+   char line[MAX_LINE_LEN];
 
   /* Initialize the player's random number state using time */
 
@@ -72,6 +72,9 @@ int main(int argc, char **argv) {
 
   nbgen rng(options.seed);
   read_game((char *)options.game_definition.c_str());
+
+  if (options.threshold > 0)
+    cout << "using thresholding with param: " << options.threshold << "\n";
 
   cout << "using information abstraction type: "
        << card_abstraction_str[options.card_abs]
@@ -94,32 +97,34 @@ int main(int argc, char **argv) {
             << cfr->count_terminal_nodes(agame->game_tree_root()) << "\n";
 
   /* connect to the dealer */
-  sock = connectTo((char *)options.host.c_str(), options.port);
-  if (sock < 0) {
-    std::cout << "could not connect to socket\n";
-    exit(EXIT_FAILURE);
+   sock = connectTo((char *)options.host.c_str(), options.port);
+   if (sock < 0) {
+   std::cout << "could not connect to socket\n";
+   exit(EXIT_FAILURE);
   }
-  toServer = fdopen(sock, "w");
-  fromServer = fdopen(sock, "r");
-  if (toServer == NULL || fromServer == NULL) {
+   toServer = fdopen(sock, "w");
+   fromServer = fdopen(sock, "r");
+   if (toServer == NULL || fromServer == NULL) {
 
-    fprintf(stderr, "ERROR: could not get socket streams\n");
-    exit(EXIT_FAILURE);
+   fprintf(stderr, "ERROR: could not get socket streams\n");
+   exit(EXIT_FAILURE);
   }
 
-  //[> send version string to dealer <]
-  if (fprintf(toServer, "VERSION:%" PRIu32 ".%" PRIu32 ".%" PRIu32 "\n",
-              VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION) != 14) {
+  //////[> send version string to dealer <]
+   if (fprintf(toServer, "VERSION:%" PRIu32 ".%" PRIu32 ".%" PRIu32 "\n",
+   VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION) != 14) {
 
-    fprintf(stderr, "ERROR: could not get send version to server\n");
-    exit(EXIT_FAILURE);
+   fprintf(stderr, "ERROR: could not get send version to server\n");
+   exit(EXIT_FAILURE);
   }
-  fflush(toServer);
+   fflush(toServer);
 
   // play the gamedef!
   while (fgets(line, MAX_LINE_LEN, fromServer)) {
-    // line = "MATCHSTATE:1:994:r:|Ks";
-     std::cout << "INPUT: " << line << "\n";
+    //char *line = "MATCHSTATE:0:112:cr6c/cr28:8d9s|/2hJh6h";
+    // char *line = "MATCHSTATE:1:33:c:|Qs8h";
+    //char* line = "MATCHSTATE:0:1229:cr10c/r28c/r50r126:5sQd|/8s8cAs/5c";
+     printf("%s\n",line);
 
     /* ignore comments */
     if (line[0] == '#' || line[0] == ';') {
@@ -133,30 +138,32 @@ int main(int argc, char **argv) {
       exit(EXIT_FAILURE);
     }
 
-    if (stateFinished(&state.state)) {
-      /* ignore the gamedef over message */
-      continue;
+     if (stateFinished(&state.state)) {
+    //[> ignore the gamedef over message <]
+     continue;
     }
 
-    if (currentPlayer(gamedef, &state.state) != state.viewingPlayer) {
-      /* we're not acting */
-      continue;
+     if (currentPlayer(gamedef, &state.state) != state.viewingPlayer) {
+    //[> we're not acting <]
+     continue;
     }
 
-    /* add a colon (guaranteed to fit because we read a new-line in fgets) */
-    line[len] = ':';
+     //add a colon (guaranteed to fit because we read a new-line in fgets) 
+     line[len] = ':';
     ++len;
 
-    //char *c = new char[300];
-    //printState(gamedef, &state.state, 300, c);
-    //printf("%s\n", c);
+    // char *c = new char[300];
+    // printState(gamedef, &state.state, 300, c);
+    // printf("%s\n", c);
 
     // lookup current node we are in
     InformationSetNode *curr_node = (InformationSetNode *)cfr->lookup_state(
         &state.state, state.viewingPlayer);
+    //std::cout << "i am behind lookup\n";
 
     // CHECK IF WE FOUND THE CORRECT NODE
     if (curr_node != NULL) {
+      //std::cout << "lookup was successful";
       // get strategy at curr_node
       //
       card_c hand(gamedef->numHoleCards);
@@ -176,10 +183,23 @@ int main(int argc, char **argv) {
       // for(unsigned i = 0; i < board.size(); ++i)
       // std::cout << int(board[i]) << " ";
       // std::cout << "\n";
+      //
 
       auto strategy = cfr->get_normalized_avg_strategy(
           curr_node->get_idx(), hand, board, state.state.round);
-      threshold_strategy(strategy,options.threshold);
+
+      //cout << "prev: ";
+      //for(unsigned i = 0; i < strategy.size();++i)
+        //cout << strategy[i] << " ";
+      //cout << "\n";
+
+      if (options.threshold > 0) {
+        threshold_strategy(strategy, options.threshold);
+      }
+      //cout << "thresholded: ";
+      //for(unsigned i = 0; i < strategy.size();++i)
+        //cout << strategy[i] << " ";
+      //cout << "\n";
 
       // choose according to distribution
       // std::cout << "strategy size: " << strategy.size() << "\t child size: "
@@ -195,16 +215,22 @@ int main(int argc, char **argv) {
         //std::cout << "#" << max_tries
                   //<< " choosen action: " << ActionsStr[action.type] << " = "
                   //<< action.size << "\n";
-      } while (!isValidAction(gamedef, &state.state, 0, &action) ||
-               max_tries > 0);
-
+        if(isValidAction(gamedef, &state.state, 0, &action))
+            break;
+      } while (max_tries > 0);
+      // after max tries no answer was found. jump into the fail branch.
+      if (!isValidAction(gamedef, &state.state, 0, &action))
+        goto LASTRESCUE;
     } else {
-      std::cout << "state not found in game tree. forcing first possible action.\n";
-       for( a = 0; a < NUM_ACTION_TYPES; ++a ) {
-           action.type = (ActionType)a;
-           if(isValidAction(gamedef, &state.state, 0, &action))
-               break;
-       }
+    LASTRESCUE:
+      std::cout
+          << "state not found in game tree. forcing first possible action.\n";
+      for (a = 0; a < NUM_ACTION_TYPES; ++a) {
+        action.type = (ActionType)a;
+        if (isValidAction(gamedef, &state.state, 0, &action))
+          break;
+      }
+      cout << "choosen action is " << ActionsStr[action.type] << "\n";
     }
 
     //[> do the action! <]
@@ -217,24 +243,26 @@ int main(int argc, char **argv) {
     //}
 
     assert(isValidAction(gamedef, &state.state, 0, &action));
-    r = printAction(gamedef, &action, MAX_LINE_LEN - len - 2, &line[len]);
-    if (r < 0) {
+    cout << "choosen action: " << ActionsStr[action.type] << "= " << action.size << "\n";
+    //exit(1);
+     r = printAction(gamedef, &action, MAX_LINE_LEN - len - 2, &line[len]);
+     if (r < 0) {
 
-      fprintf(stderr, "ERROR: line too long after printing action\n");
-      exit(EXIT_FAILURE);
+     fprintf(stderr, "ERROR: line too long after printing action\n");
+     exit(EXIT_FAILURE);
     }
-    len += r;
-    line[len] = '\r';
+     len += r;
+     line[len] = '\r';
     ++len;
-    line[len] = '\n';
+     line[len] = '\n';
     ++len;
 
-    if (fwrite(line, 1, len, toServer) != len) {
+     if (fwrite(line, 1, len, toServer) != len) {
 
-      fprintf(stderr, "ERROR: could not get send response to server\n");
-      exit(EXIT_FAILURE);
+     fprintf(stderr, "ERROR: could not get send response to server\n");
+     exit(EXIT_FAILURE);
     }
-    fflush(toServer);
+     fflush(toServer);
   }
 
   return 0;
@@ -258,7 +286,9 @@ int parse_options(int argc, char **argv) {
         "init-stategy,i", po::value<string>(&options.init_strategy),
         "initialize regrets and avg strategy from file")(
         "gamedef,g", po::value<string>(&options.game_definition),
-        "gamedefinition to use");
+        "gamedefinition to use")(
+        "threshold,t", po::value<double>(&options.threshold),
+        "Set this if thresholding should be applied to retrieved strategies.");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
