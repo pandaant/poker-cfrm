@@ -25,6 +25,23 @@ void threshold_strategy(std::vector<double> &strategy, double threshold) {
   }
 }
 
+// threshold = max distance between two probabilities to be considered equal
+void purify_strategy(std::vector<double> &strategy, double threshold = 0.001){
+  double max_prob = *std::max_element(strategy.begin(), strategy.end());
+  double sum = 0;
+  for (unsigned i = 0; i < strategy.size(); ++i) {
+    if ((max_prob - strategy[i]) < threshold )
+      strategy[i] = 1;
+    else
+      strategy[i] = 0;
+    sum += strategy[i];
+  }
+
+  for (unsigned i = 0; i < strategy.size(); ++i) {
+    strategy[i] = strategy[i] == 0 ? 0 : (strategy[i]/sum);
+  }
+}
+
 using namespace std;
 namespace ch = std::chrono;
 namespace po = boost::program_options;
@@ -48,6 +65,7 @@ struct {
   string init_strategy = "";
 
   double threshold = -1;
+  double purify = -1;
 } options;
 
 const Game *gamedef;
@@ -196,6 +214,10 @@ int main(int argc, char **argv) {
       if (options.threshold > 0) {
         threshold_strategy(strategy, options.threshold);
       }
+
+      if (options.purify > 0) {
+        purify_strategy(strategy, options.purify);
+      }
       //cout << "thresholded: ";
       //for(unsigned i = 0; i < strategy.size();++i)
         //cout << strategy[i] << " ";
@@ -288,7 +310,10 @@ int parse_options(int argc, char **argv) {
         "gamedef,g", po::value<string>(&options.game_definition),
         "gamedefinition to use")(
         "threshold,t", po::value<double>(&options.threshold),
-        "Set this if thresholding should be applied to retrieved strategies.");
+        "Set this if thresholding should be applied to retrieved strategies.")(
+        "purify,u", po::value<double>(&options.purify),
+        "Set this if purification should be applied to strategies. parameter determines how far"
+        "2 probabilities can be apart to be still considered equal.");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
