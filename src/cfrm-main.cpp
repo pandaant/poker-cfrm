@@ -126,6 +126,7 @@ unsigned curr_check = 1;
 
   std::cout << "Number of informationsets:" << game->get_nb_infosets() << "\n";
   std::cout << "Number of terminalnodes:" << cfr->count_terminal_nodes(game->game_tree_root()) << "\n";
+  std::cout << "Number of states:" << cfr->count_states(game->game_tree_root()) << "\n";
 
 
   auto runtime = ch::milliseconds((int)(options.runtime * 1000));
@@ -139,13 +140,19 @@ unsigned curr_check = 1;
   vector<std::thread> iter_threads(options.nb_threads);
   vector<size_t> iter_threads_cnt(options.nb_threads, 0);
 
-  //for (unsigned i = 0; i < 100001; ++i) {
+  //for (unsigned i = 0; i < 10000000; ++i) {
     //cfr->iterate(rng);
-    //if (i % 100 == 0) {
+    //if (i == 0||i % 1000 == 0) {
       //vector<double> br = cfr->best_response();
-      //cout << ch::duration_cast<ch::milliseconds>(ch::steady_clock::now() -
-                                            //start).count() << "\t" << br[0] + br[1] << "\n";
+      ////cout << ch::duration_cast<ch::milliseconds>(ch::steady_clock::now() -
+                                            ////start).count() << "\t" << br[0] + br[1] << "\n";
+      //cout << i << "\t" << br[0] + br[1] << "\n";
+
+      //if (ch::duration_cast<ch::milliseconds>(ch::steady_clock::now() - start)
+              //.count() >= runtime.count())
+        //break;
     //}
+
     ////if (i % 100000 == 0 || i == 0) {
       ////std::string checkfile = options.dump_strategy + "." + comma_format(i==0 ? 0 : (i/100000));
       ////cfr->dump((char *)checkfile.c_str());

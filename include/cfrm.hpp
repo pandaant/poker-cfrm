@@ -86,6 +86,35 @@ public:
   void dump(char *filename);
 
   // recursively counts the size of the subtree curr.
+  size_t count_states(INode *curr) {
+    if (curr->is_public_chance()) {
+      PublicChanceNode *n = (PublicChanceNode *)curr;
+      size_t sum = 0;
+      for (unsigned i = 0; i < n->children.size(); ++i) {
+        sum += count_states(n->children[i]);
+      }
+      return sum;
+    } else if (curr->is_private_chance()) {
+      return count_states(((PrivateChanceNode *)curr)->child);
+    } else if (curr->is_terminal()) {
+      if (curr->is_fold())
+        return 0;
+      else
+        return 0;
+    }
+    InformationSetNode *n = (InformationSetNode *)curr;
+    size_t sum = 0;
+
+    uint64_t info_idx = n->get_idx();
+    sum += avg_strategy[info_idx].nb_buckets;
+
+    for (unsigned i = 0; i < n->children.size(); ++i) {
+      sum += count_states(n->children[i]);
+    }
+    return sum;
+  }
+
+  // recursively counts the size of the subtree curr.
   size_t count_terminal_nodes(INode *curr) {
     if (curr->is_public_chance()) {
       PublicChanceNode *n = (PublicChanceNode *)curr;
