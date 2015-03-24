@@ -45,7 +45,7 @@ static void gen_cost_matrix(unsigned rows, unsigned cols,
 
 static precision_t emd_forwarder(histogram_t &a, histogram_t &b,
                                  unsigned nb_elements, void *context) {
-  return emd_hat<precision_t>()(
+  return emd_hat_gd_metric<precision_t>()(
       a, b, *static_cast<std::vector<std::vector<precision_t>> *>(context));
 }
 

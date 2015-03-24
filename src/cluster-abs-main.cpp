@@ -12,6 +12,7 @@
 #include "abstraction_generator.hpp"
 #include "kmeans.hpp"
 #include "main_functions.hpp"
+#include "ehs_lookup.hpp"
 
 using std::cout;
 using std::string;
@@ -38,6 +39,7 @@ const char *metric_str[] = {
 
 struct {
   string handranks_path = "/usr/local/freedom/data/handranks.dat";
+  string ehs_path = "../../EHS.dat";
   int nb_threads = 1;
   size_t seed = time(NULL);
   string save_to = "";
@@ -49,16 +51,17 @@ struct {
   string hist_calc_board = "";
 
   dbl_c clustering_target_precision{0.01,0.01,0.01,0.01}; // error bounds for kmeans per round
-  int_c nb_buckets{5, 5, 5, 5};
+  int_c nb_buckets{5, 10, 5, 5};
   int_c nb_samples{0, 100, 100, 100};
-  int_c num_history_points{0, 8, 1, 1};
-  int_c nb_hist_samples_per_round{0, 500, 1, 1};
+  int_c num_history_points{0, 10, 1, 1};
+  int_c nb_hist_samples_per_round{0, 250, 1, 1};
 
   metric_t metric = MIXED_NOOO;
 } options;
 
 const Game *gamedef;
 ecalc::Handranks *handranks;
+EHSLookup* ehslp;
 
 void dump_centers(std::ofstream &stream, std::vector<histogram_c> &centers);
 int parse_options(int argc, char **argv);
@@ -75,6 +78,9 @@ int main(int argc, char **argv) {
   cout << "loading handranks from: " << options.handranks_path << "\n";
   handranks = new ecalc::Handranks(options.handranks_path.c_str());
 
+  cout << "loading ehslookup from: " << options.ehs_path << "\n";
+  ehslp = new EHSLookup(options.ehs_path.c_str());
+
   if (options.print_hand_hist != "") {
     poker::Hand hand = poker::Hand(options.print_hand_hist);
     // cout << hand.str() << "\n";
@@ -82,7 +88,7 @@ int main(int argc, char **argv) {
     std::ofstream tmp("tmp");
     EMDAbstractionGenerator *generator = new EMDAbstractionGenerator(
         tmp, options.nb_buckets, options.nb_samples, {100, 10, 10, 10},
-        options.nb_hist_samples_per_round,options.clustering_target_precision, handranks, clusterrng,
+        options.nb_hist_samples_per_round,options.clustering_target_precision, ehslp, clusterrng,
         options.nb_threads);
 
     uint8_t cards[7] = {((uint8_t)(hand.highcard().card() - 1)),
@@ -117,13 +123,13 @@ int main(int argc, char **argv) {
   si = new SuitIsomorphAbstractionGenerator(dump_to);
   emd = new EMDAbstractionGenerator(
       dump_to, options.nb_buckets, options.nb_samples,
-      options.num_history_points, options.nb_hist_samples_per_round, options.clustering_target_precision, handranks,
+      options.num_history_points, options.nb_hist_samples_per_round, options.clustering_target_precision, ehslp,
       clusterrng, options.nb_threads);
   ochs = new OCHSAbstractionGenerator(
       dump_to, options.nb_buckets, options.nb_samples,
       options.num_history_points, options.clustering_target_precision, handranks, clusterrng, options.nb_threads);
   ehs = new EHSAbstractionGenerator(dump_to, options.nb_buckets,
-                                    options.nb_samples, options.clustering_target_precision, handranks, clusterrng,
+                                    options.nb_samples, options.clustering_target_precision, ehslp, clusterrng,
                                     options.nb_threads);
 
   switch (options.metric) {

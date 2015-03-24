@@ -11,6 +11,7 @@
 
 #include "kmeans.hpp"
 #include "emd_hat.hpp"
+#include "ehs_lookup.hpp"
 
 extern "C" {
 #include "hand_index.h"
@@ -42,47 +43,33 @@ class EHSAbstractionGenerator : public AbstractionGenerator {
   int_c nb_buckets;
   int_c nb_samples;
   dbl_c err_bounds;
-  std::vector<ecalc::ECalc *> calc;
-  hand_indexer_t indexer[4];
   boost::mt19937 &clusterrng;
+  EHSLookup* ehslp;
 
 public:
   ~EHSAbstractionGenerator() {
-    for (unsigned i = 0; i < calc.size(); ++i)
-      delete calc[i];
   }
 
   EHSAbstractionGenerator(std::ofstream &dump_to, int_c buckets_per_round,
                           int_c samples_per_round, dbl_c err_bounds,
-                          ecalc::Handranks *hr, boost::mt19937 &rng,
+                          EHSLookup *ehslp, boost::mt19937 &rng,
                           int nb_threads = 1)
       : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round),
         err_bounds(err_bounds), clusterrng(rng), nb_samples(samples_per_round),
-        calc(nb_threads), nb_threads(nb_threads) {
-
-    for (unsigned i = 0; i < nb_threads; ++i)
-      calc[i] = new ecalc::ECalc(hr);
-
-    assert(hand_indexer_init(1, (uint8_t[]) {2}, &indexer[0]));
-    assert(hand_indexer_init(2, (uint8_t[]) {2, 3}, &indexer[1]));
-    assert(hand_indexer_init(2, (uint8_t[]) {2, 4}, &indexer[2]));
-    assert(hand_indexer_init(2, (uint8_t[]) {2, 5}, &indexer[3]));
+        ehslp(ehslp), nb_threads(nb_threads) {
   }
 
   virtual void generate(nbgen &rng, std::vector<histogram_c> &round_centers) {
     for (int r = 0; r < nb_buckets.size(); ++r) {
-      size_t round_size = indexer[r].round_size[(r == 0) ? 0 : 1];
-      std::cout << "evaluating " << round_size << " combinations in round " << r
-                << ". required space: " << (sizeof(hand_feature) * round_size) /
-                                               (1024 * 1024.0 * 1024.0)
-                << " gb \n";
+      size_t round_size = ehslp->size(r);
+      std::cout << "evaluating " << round_size << " combinations in round " << r << "\n";
       generate_round(r, rng, round_centers[r]);
     }
   }
 
   virtual void generate_round(int round, nbgen &rng, histogram_c &center) {
     int_c board_card_sum{0, 3, 4, 5};
-    size_t round_size = indexer[round].round_size[(round == 0) ? 0 : 1];
+    size_t round_size = ehslp->size(round);
     std::vector<datapoint_t> features = std::vector<datapoint_t>(round_size);
 
     // thread variables
@@ -98,21 +85,11 @@ public:
           std::thread([t, round, accumulator, &features, &board_card_sum,
                        &thread_block_size, this] {
             uint8_t cards[7];
-            std::vector<ecalc::card> board(board_card_sum[round]);
-            ecalc::SingleHandlist handlist(poker::Hand(1, 2));
             histogram_t hist(1);
 
             for (size_t i = (accumulator - thread_block_size[t]);
                  i < accumulator; ++i) {
-              hand_unindex(&indexer[round], (round == 0) ? 0 : 1, i, cards);
-              handlist.set_hand(poker::Hand(cards[0] + 1, cards[1] + 1));
-              for (int j = 2; j < board_card_sum[round] + 2; ++j) {
-                board[j - 2] = cards[j] + 1;
-              }
-              hist[0] = calc[t]
-                            ->evaluate_vs_random(&handlist, 1, board, {},
-                                                 nb_samples[round])[0]
-                            .pwin_tie();
+              hist[0] = ehslp->raw(round,i);
               features[i].histogram = hist;
             }
           });
@@ -137,7 +114,7 @@ public:
     dump_to->write(reinterpret_cast<const char *>(&nb_buckets[round]),
                    sizeof(nb_buckets[round]));
 
-    size_t nb_entries = indexer[round].round_size[round == 0 ? 0 : 1];
+    size_t nb_entries = ehslp->size(round);
     for (size_t i = 0; i < nb_entries; ++i) {
       dump_to->write(reinterpret_cast<const char *>(&features[i].cluster),
                      sizeof(features[i].cluster));
@@ -155,9 +132,9 @@ class EMDAbstractionGenerator : public AbstractionGenerator {
   dbl_c err_bounds;
   dbl_c step_size;
   int_c nb_hist_samples_per_round;
-  std::vector<ecalc::ECalc *> calc;
-  hand_indexer_t indexer[4];
   boost::mt19937 clusterrng;
+  EHSLookup* ehslp;
+  hand_indexer_t indexer[4];
 
 public:
   struct hand_feature {
@@ -166,17 +143,15 @@ public:
   };
 
   ~EMDAbstractionGenerator() {
-    for (unsigned i = 0; i < calc.size(); ++i)
-      delete calc[i];
   }
 
   EMDAbstractionGenerator(std::ofstream &dump_to, int_c buckets_per_round,
                           int_c samples_per_round, int_c num_history_points,
                           int_c nb_hist_samples_per_round, dbl_c err_bounds,
-                          ecalc::Handranks *hr, boost::mt19937 &rng,
+                          EHSLookup* ehslp, boost::mt19937 &rng,
                           int nb_threads = 1)
       : AbstractionGenerator(dump_to), nb_buckets(buckets_per_round),
-        clusterrng(rng), nb_samples(samples_per_round), calc(nb_threads),
+        clusterrng(rng), nb_samples(samples_per_round), ehslp(ehslp), 
         num_history_points(num_history_points),
         nb_hist_samples_per_round(nb_hist_samples_per_round),
         err_bounds(err_bounds), step_size(num_history_points.size()),
@@ -184,9 +159,6 @@ public:
 
     for (unsigned i = 0; i < num_history_points.size(); ++i)
       step_size[i] = 1.0 / num_history_points[i];
-
-    for (unsigned i = 0; i < nb_threads; ++i)
-      calc[i] = new ecalc::ECalc(hr);
 
     assert(hand_indexer_init(1, (uint8_t[]) {2}, &indexer[0]));
     assert(hand_indexer_init(2, (uint8_t[]) {2, 3}, &indexer[1]));
@@ -209,7 +181,7 @@ public:
   virtual void generate(nbgen &rng, std::vector<histogram_c> &round_centers) {
 
     for (int r = 0; r < nb_buckets.size() - 2; ++r) {
-      size_t round_size = indexer[r].round_size[(r == 0) ? 0 : 1];
+      size_t round_size = ehslp->size(r);
       std::cout << "evaluating " << round_size << " combinations in round " << r
                 << ". required space: " << (sizeof(hand_feature) * round_size) /
                                                (1024 * 1024.0 * 1024.0)
@@ -259,9 +231,11 @@ public:
               handlist.set_hand(poker::Hand(cards[0] + 1, cards[1] + 1));
               deck[cards[0]] = 0;
               deck[cards[1]] = 0;
+            int missing_c = 5;
               for (int j = 2; j < board_card_sum[round] + 2; ++j) {
                 deck[cards[j]] = 0;
                 board[j - 2] = cards[j] + 1;
+                --missing_c;
               }
 
               // build histogramm
@@ -270,7 +244,7 @@ public:
                 std::bitset<52> sdeck = deck;
                 std::vector<ecalc::card> sboard(board);
 
-                for (unsigned b = 0; b < (board_card_sum[3] - sboard.size());
+                for (unsigned b = 0; b < missing_c;
                      ++b) {
                   ecalc::card rand;
                   while (true) {
@@ -283,11 +257,28 @@ public:
                   }
                 }
 
-                double equity =
-                    calc[t]
-                        ->evaluate_vs_random(&handlist, 1, sboard, {},
-                                             nb_samples[round])[0]
-                        .pwin_tie();
+                uint8_t newcards[7];
+                assert(sboard.size() == 5);
+                newcards[0] = cards[0];
+                newcards[1] = cards[1];
+                newcards[2] = sboard[0]-1;
+                newcards[3] = sboard[1]-1;
+                newcards[4] = sboard[2]-1;
+                newcards[5] = sboard[3]-1;
+                newcards[6] = sboard[4]-1;
+
+
+                //for(unsigned d = 0; d < 7; ++d)
+                    //std::cout << ((int)newcards[d]) << " ";
+                //std::cout << "\n";
+
+                hand_index_t index = hand_index_last(&indexer[3], newcards);
+
+                double equity = ehslp->raw(3, index);
+                // calc[t]
+                //->evaluate_vs_random(&handlist, 1, sboard, {},
+                // nb_samples[round])[0]
+                //.pwin_tie();
                 ++features[i].histogram[prob_to_bucket(equity, round)];
               }
 
@@ -321,7 +312,7 @@ public:
     dump_to->write(reinterpret_cast<const char *>(&nb_buckets[round]),
                    sizeof(nb_buckets[round]));
 
-    size_t nb_entries = indexer[round].round_size[round == 0 ? 0 : 1];
+    size_t nb_entries = ehslp->size(round);
     for (size_t i = 0; i < nb_entries; ++i) {
       // std::cout << features[i].cluster << "\n";
       dump_to->write(reinterpret_cast<const char *>(&features[i].cluster),
@@ -335,15 +326,21 @@ public:
                            nbgen &rng, int nb_hist_samples, unsigned nb_samples,
                            int thread = 0) {
     int_c board_card_sum{0, 3, 4, 5};
+    //uint8_t newcards[7];
     std::bitset<52> deck = std::bitset<52>{}.set();
     std::vector<ecalc::card> board(board_card_sum[round]);
     ecalc::SingleHandlist handlist(poker::Hand(1, 2));
-    handlist.set_hand(poker::Hand(cards[0] + 1, cards[1] + 1));
+    //handlist.set_hand(poker::Hand(cards[0] + 1, cards[1] + 1));
+    //newcards[0] = cards[0];
+    //newcards[1] = cards[1];
     deck[cards[0]] = 0;
     deck[cards[1]] = 0;
+    int missing_c = 5;
     for (int j = 2; j < board_card_sum[round] + 2; ++j) {
       deck[cards[j]] = 0;
       board[j - 2] = cards[j] + 1;
+      //newcards[j] = cards[j];
+      --missing_c;
     }
 
     // build histogramm
@@ -352,7 +349,7 @@ public:
       std::bitset<52> sdeck = deck;
       std::vector<ecalc::card> sboard(board);
 
-      for (unsigned b = 0; b < (board_card_sum[3] - board.size()); ++b) {
+      for (unsigned b = 0; b < missing_c; ++b) {
         ecalc::card rand;
         while (true) {
           rand = rng(52);
@@ -364,10 +361,20 @@ public:
         }
       }
 
-      double equity =
-          calc[thread]
-              ->evaluate_vs_random(&handlist, 1, sboard, {}, nb_samples)[0]
-              .pwin_tie();
+      uint8_t newcards[7];
+      newcards[0] = cards[0];
+      newcards[1] = cards[1];
+      newcards[2] = sboard[0];
+      newcards[3] = sboard[1];
+      newcards[4] = sboard[2];
+      newcards[5] = sboard[3];
+      newcards[6] = sboard[4];
+      hand_index_t index = hand_index_last(&indexer[round], newcards);
+
+      double equity = ehslp->raw(round,index);
+          //calc[thread]
+              //->evaluate_vs_random(&handlist, 1, sboard, {}, nb_samples)[0]
+              //.pwin_tie();
       ++feature.histogram[prob_to_bucket(equity, round)];
     }
 
