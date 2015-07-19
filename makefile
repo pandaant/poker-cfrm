@@ -7,11 +7,11 @@ LDLIBS ?=-c
 CXXFLAGS ?= -std=c++11 -MMD -MP
 
 INCLUDES +=-I ./include\
-		   -I ../../lib/libpoker/include\
-		   -I ../../lib/libecalc/include
+		   -I lib/libpoker/include\
+		   -I lib/libecalc/include
 
-CPP_LIBRARIES += -L ../../lib/libpoker/lib/release -lpoker\
-				 -L ../../lib/libecalc/lib/release -lecalc\
+CPP_LIBRARIES += -L lib/libpoker/lib/release -lpoker\
+				 -L lib/libecalc/lib/release -lecalc\
 				-lpthread -lboost_program_options
 
 ifeq ($(target),debug)
@@ -45,7 +45,6 @@ obj/$(target)/%.o: src/%.c
 
 obj/$(target)/%.o: $(SERVER_PATH)/%.c
 	$(CC) $(INCLUDES) $(LDFLAGS) $(LOADLIBES) $(LDLIBS) $< -o $@
-
 
 obj/$(target)/%.o: src/%.cpp 
 	$(CXX) $(INCLUDES) $(CXXFLAGS) -c -o $@ $<
