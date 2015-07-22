@@ -6,6 +6,8 @@
 *.o
 *.d
 *.log
+*.dat
+*.plot
 test.abs
 strategies/*
 abstractions/*

@@ -1,0 +1,13 @@
+GAMEDEF
+nolimit
+numPlayers = 2
+numRounds = 1
+stack = 1000 1000 
+blind = 1 1
+firstPlayer = 1
+maxRaises = 5 
+numSuits = 1
+numRanks = 3
+numHoleCards = 1
+numBoardCards = 0
+END GAMEDEF
