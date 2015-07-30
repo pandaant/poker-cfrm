@@ -7,13 +7,12 @@ CXXFLAGS  = -std=c++11 -MMD -MP
 
 # search paths for header files
 INCLUDES = -I ../include/poker \
-		   -isystem ../../../dep/UnitTest++/src \
-		   -isystem ../../../dep/decimal_for_cpp/include
+		   -isystem ../../UnitTest++/src
 
 # add paths of libraries the
 # targets depend on.
 LIBRARIES = -L ../lib/$(target) -lpoker \
-			-L ../../../dep/UnitTest++ -lUnitTest++ 
+			-L ../..//UnitTest++ -lUnitTest++ 
 
 # gather all source files and define
 # where the object files of each target go.

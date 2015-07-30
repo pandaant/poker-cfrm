@@ -23,8 +23,8 @@ public:
   /// @param card number to create card from
   // ----------------------------------------------------------------------
   explicit Card(int card) : card_(card) {
-    if (card < 1 || card > 52)
-      throw std::out_of_range("Cardvalue is out of bounds. ( 1 - 52 )");
+    if (card < 0 || card > 51)
+      throw std::out_of_range("Cardvalue is out of bounds. ( 0 - 51 )");
   }
 
   // ----------------------------------------------------------------------
@@ -44,7 +44,7 @@ public:
       throw std::logic_error(
           "Suit or Facevalue of the Card could not be determined.");
 
-    card_ = 4 * value + suit + 1;
+    card_ = 4 * value + suit;
   }
 
   // ----------------------------------------------------------------------
@@ -60,7 +60,7 @@ public:
   /// @return the facevalue of the card as enum
   // ----------------------------------------------------------------------
   FaceType::Enum value() const {
-    return static_cast<FaceType::Enum>((card_ - suit() - 1) * 0.25);
+    return static_cast<FaceType::Enum>((card_ - suit()) * 0.25);
   }
 
   // ----------------------------------------------------------------------
@@ -69,7 +69,7 @@ public:
   /// @return the suit of the card as enum
   // ----------------------------------------------------------------------
   SuitType::Enum suit() const {
-    return static_cast<SuitType::Enum>((card_ - 1) % 4);
+    return static_cast<SuitType::Enum>(card_ % 4);
   }
 
   // ----------------------------------------------------------------------

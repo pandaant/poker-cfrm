@@ -84,12 +84,12 @@ SUITE(CardTests) {
 
   TEST(CardFromString) {
     Card a = Card("As"); // 52
-    CHECK_EQUAL(52, a.card());
+    CHECK_EQUAL(51, a.card());
 
     a = Card("3c"); // 5
-    CHECK_EQUAL(5, a.card());
+    CHECK_EQUAL(4, a.card());
 
     a = Card("Jc"); // 37
-    CHECK_EQUAL(37, a.card());
+    CHECK_EQUAL(36, a.card());
   }
 }

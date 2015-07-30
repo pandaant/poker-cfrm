@@ -10,18 +10,18 @@ SUITE(HandTests) {
     Card b = Card("4d");
 
     Hand h = Hand(a, b);
-    CHECK_EQUAL(52, h.highcard().card());
-    CHECK_EQUAL(10, h.lowcard().card());
+    CHECK_EQUAL(51, h.highcard().card());
+    CHECK_EQUAL(9, h.lowcard().card());
 
     h = Hand(b, a);
-    CHECK_EQUAL(52, h.highcard().card());
-    CHECK_EQUAL(10, h.lowcard().card());
+    CHECK_EQUAL(51, h.highcard().card());
+    CHECK_EQUAL(9, h.lowcard().card());
   }
 
   TEST(HandFromString) {
     Hand h = Hand("AsJc");
-    CHECK_EQUAL(52, h.highcard().card());
-    CHECK_EQUAL(37, h.lowcard().card());
+    CHECK_EQUAL(51, h.highcard().card());
+    CHECK_EQUAL(36, h.lowcard().card());
   }
 
   TEST(HandEquality) {
