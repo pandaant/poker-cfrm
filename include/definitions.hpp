@@ -18,11 +18,7 @@ enum action_abstraction { NULLACTION_ABS, POTRELACTION_ABS };
 
 static const char *action_abstraction_str[] = {"NULL", "POTREL"};
 
-enum card_abstraction {
-  CLUSTERCARD_ABS,
-  NULLCARD_ABS,
-  BLINDCARD_ABS
-};
+enum card_abstraction { CLUSTERCARD_ABS, NULLCARD_ABS, BLINDCARD_ABS };
 
 static const char *card_abstraction_str[] = {"CLUSTER", "NULL", "BLIND"};
 
@@ -69,6 +65,5 @@ struct hand_t {
     return *this;
   }
 };
-
 
 #endif

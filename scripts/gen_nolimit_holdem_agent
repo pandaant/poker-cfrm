@@ -1,8 +1,12 @@
 #!/bin/bash
 
-THREADS=8
+THREADS=2
+
+# each comma separated values is a fraction of the pot
+# to raise by. 9999 is allin.
 POTREL="0.4,0.8,1.2,2,5,9999"
-TIME=86400
+
+TIME=3600 # 1 hour 
 
 ./cluster-abs --handranks ../../handranks.dat\
 	--threads $THREADS\
@@ -25,7 +29,7 @@ TIME=86400
 	--handranks ../../handranks.dat\
 	-g ../../games/holdem.nolimit.2p.reverse_blinds.game\
 	-c cluster -a potrel\
-	-n $POTREL -r 86400 -k 10000 --threads $THREADS\
+	-n $POTREL -r $TIME -k 10000 --threads $THREADS\
 	-m abstractions/final-agent-npeo.abs\
 	-d strategies/final-agent.strat
 

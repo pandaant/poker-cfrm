@@ -6,3 +6,7 @@
 XPokerEval.TwoPlusTwo/HandRanks.dat into cfrm root
 * make tools/ehs_gen and generate ehs.dat
 * make project
+
+## Usage
+* script folder contains example scripts to generate abstractions and strategies
+

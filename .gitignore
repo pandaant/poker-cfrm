@@ -11,3 +11,10 @@
 test.abs
 strategies/*
 abstractions/*
+
+cfrm
+cluster-abs
+potential-abs
+player
+lib/libpoker/lib/*
+lib/libpoker/obj/*

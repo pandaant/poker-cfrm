@@ -205,7 +205,7 @@ unsigned curr_check = 1;
       for (unsigned i = 0; i < iter_threads_cnt.size(); ++i)
         iter_cnt_sum += iter_threads_cnt[i];
       std::string checkfile = options.dump_strategy + "." + std::to_string(curr_check);
-      cout << "Saving current strategy to" << checkfile << "...\n";
+      cout << "Saving current strategy to " << checkfile << "...\n";
       cfr->dump((char *)checkfile.c_str());
       ++curr_check;
     }
@@ -268,9 +268,9 @@ int parse_options(int argc, char **argv) {
         "iterations,u", po::value<size_t>(&options.nb_target_iterations), "if specified. nb iterations is checked at checkpoints and the algorithm is stopped if iterations are reached.")(
         "checkpoint,k", po::value<double>(&options.checkpoint_time),
         "checkpoint time in seconds. (if iterations are used this is the number of iterations for a checkpoint.")(
-        "dump-stategy,d", po::value<string>(&options.dump_strategy),
+        "dump-strategy,d", po::value<string>(&options.dump_strategy),
         "safe generated strategy to file.")(
-        "init-stategy,i", po::value<string>(&options.init_strategy),
+        "init-strategy,i", po::value<string>(&options.init_strategy),
         "initialize regrets with an existing strategy")(
         "print-strategy,p", po::bool_switch(&options.print_strategy),
         "print strategy in human readable format")(

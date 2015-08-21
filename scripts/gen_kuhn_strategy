@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#
+# This generates a strategy for the game of limit kuhn poker.
+#
+
+THREADS=2
+TIME=10 # seconds
+
+../cfrm \
+    --threads $THREADS \
+    --handranks ../handranks.dat \
+    --game-type kuhn \
+    --action-abstraction null \
+    --card-abstraction null \
+    --gamedef ../games/kuhn.limit.2p.game \
+    --runtime $TIME \
+    --checkpoint 1 \
+    --dump-strategy kuhn.limit.2p.strat \
+    --print-best-response \
+    --print-strategy
