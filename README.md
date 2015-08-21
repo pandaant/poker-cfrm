@@ -1,6 +1,7 @@
 # Poker Agent using Counterfactual Regret Minimization
 
 ## Requirements
+* Clang (For C++11 support)
 * Boost Programmoptions 1.55+
 
 ## Installation
@@ -32,5 +33,14 @@ $ make
 ```
 
 ## Usage
-* script folder contains example scripts to generate abstractions and strategies
+If the build process was successful 4 binaries have been created:
 
+* ./cfrm is the main executable that trains a strategy.
+* ./cluster-abs generates card abstractions based of different metrics ( explained below ).
+* ./potential-abs generates a potential based card abstraction based on a precalculated cluster abstraction.
+* ./player can be used to play the agent against itself or other agents ( uses UAPRG server )
+
+* The scripts folder contains example scripts to generate abstractions and strategies for different games.
+
+### Action Abstraction
+### Card Abstraction
