@@ -25,13 +25,17 @@ CPP_FILES = $(wildcard src/*.cpp)
 OBJ_FILES = $(addprefix obj/$(target)/,$(notdir $(CPP_FILES:.cpp=.o)))
 DEP_FILES = $(OBJ_FILES:.o=.d)
 
+all: prepare $(LIB_OUT)
+
+prepare:
+	mkdir -p obj/{release,debug}
+	mkdir -p lib/{release,debug}
+
 $(LIB_OUT): $(OBJ_FILES)
 	ar rcs $@ $^
 
 obj/$(target)/%.o: src/%.cpp
 	$(CXX) $(INCLUDES) $(CXXFLAGS) -c -o $@ $<
-
-all: $(LIB_OUT)
 
 doc:
 	mkdir -p $(DOC_OUT)
