@@ -1,4 +1,10 @@
-# Poker Agent using Counterfactual Regret Minimization
+# NLTH Poker Agent using Counterfactual Regret Minimization
+
+* Trains strategies for Kuhn-, Leduc- and Texas Holdem Poker
+* Supported Training methods:
+  * External Sampling
+  * Chance Sampling
+  * Outcome Sampling
 
 ## Requirements
 * Clang (For C++11 support)
