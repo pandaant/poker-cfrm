@@ -49,4 +49,12 @@ If the build process was successful 4 binaries have been created:
 * The scripts folder contains example scripts to generate abstractions and strategies for different games.
 
 ### Action Abstraction
+
+* NullActionAbstraction 
+* PotRelationAbstractuion
+
 ### Card Abstraction
+
+* NullCardAbstraction
+* BlindCardAbstraction
+* ClusterCardAbstraction
