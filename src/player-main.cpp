@@ -224,10 +224,6 @@ int main(int argc, char **argv) {
       //cout << "\n";
 
       // choose according to distribution
-      // std::cout << "strategy size: " << strategy.size() << "\t child size: "
-      // << curr_node->get_children().size() << "\n";
-
-      // for( a = 0; a < NUM_ACTION_TYPES; ++a ) {
       std::discrete_distribution<int> d(strategy.begin(), strategy.end());
       int max_tries = 10;
       do {
@@ -256,17 +252,8 @@ int main(int argc, char **argv) {
     }
 
     //[> do the action! <]
-    // if(action.type == a_fold){
-    // std::cout << "fold action. ";
-    // auto oh = action;
-    // oh.type = a_check;
-    // if(isValidAction(gamedef, &state.state, 0, &oh))
-    // std::cout << " check is possible\n";
-    //}
-
     assert(isValidAction(gamedef, &state.state, 0, &action));
     cout << "choosen action: " << ActionsStr[action.type] << "= " << action.size << "\n";
-    //exit(1);
      r = printAction(gamedef, &action, MAX_LINE_LEN - len - 2, &line[len]);
      if (r < 0) {
 
@@ -339,10 +326,6 @@ int parse_options(int argc, char **argv) {
       cout << desc << "\n";
       return 1;
     }
-
-    // if (vm.count("handranks")) {
-    // options.handranks_file = vm["handranks"].as<string>();
-    //}
   }
   catch (exception &e) {
   }

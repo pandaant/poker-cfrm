@@ -62,18 +62,6 @@ unsigned curr_check = 1;
   if (parse_options(argc, argv) == 1)
     return 1;
 
-  //std::vector<uint8_t> d{(uint8_t)0, (uint8_t)4, (uint8_t)8, (uint8_t)12};
-  //uint64_t b = deck_to_bitset(d);
-//std::vector<uint8_t> deck = bitset_to_deck(b, 52);
-//for(unsigned i = 0; i < deck.size(); ++i)
-    //std::cout << int(deck[i]) << "\n";
-
-//hand_list bv = deck_to_combinations(2,deck);
-//for(unsigned i = 0; i < bv.size(); ++i)
-    //std::cout << int(bv[i][0]) << "," << int(bv[i][1]) << "\n";
-
-    //exit(1);
-
   cout << "initializing rng with seed: " << options.seed << "\n";
   nbgen rng(options.seed);
 
@@ -139,26 +127,6 @@ unsigned curr_check = 1;
 
   vector<std::thread> iter_threads(options.nb_threads);
   vector<size_t> iter_threads_cnt(options.nb_threads, 0);
-
-  //for (unsigned i = 0; i < 10000000; ++i) {
-    //cfr->iterate(rng);
-    //if (i == 0||i % 1000 == 0) {
-      //vector<double> br = cfr->best_response();
-      ////cout << ch::duration_cast<ch::milliseconds>(ch::steady_clock::now() -
-                                            ////start).count() << "\t" << br[0] + br[1] << "\n";
-      //cout << i << "\t" << br[0] + br[1] << "\n";
-
-      //if (ch::duration_cast<ch::milliseconds>(ch::steady_clock::now() - start)
-              //.count() >= runtime.count())
-        //break;
-    //}
-
-    ////if (i % 100000 == 0 || i == 0) {
-      ////std::string checkfile = options.dump_strategy + "." + comma_format(i==0 ? 0 : (i/100000));
-      ////cfr->dump((char *)checkfile.c_str());
-    ////}
-  //}
-  //exit(1);
 
   // start threads
   for (int i = 0; i < options.nb_threads; ++i) {

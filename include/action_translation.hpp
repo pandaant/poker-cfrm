@@ -35,7 +35,6 @@ public:
         break;
       }
     }
-      //printf("lower: %u, upper: %u\n",lower_bound, upper_bound);
 
     return 0;
   }
@@ -70,24 +69,11 @@ public:
         if( dart < weights[choice] )
             break;
         dart -= weights[choice];
-      //printf("dart = %f\n",dart);
       }
       //printf("choice = %f\n",weights[choice]);
-      //assert(choice < 2);
-      //assert(weights[choice] > 0.0);
-      //if( (a/x_median) > (x_median/b))
-          //return lower_bound;
-      //return upper_bound;
-
       //printf("lower: %u, upper: %u\n",lower_bound, upper_bound);
 
-      //double r = ((b-x)*(1+a)) / ((b-a)*(1+x));
-      //printf("r: %f\n",r);
-
-      //printf("threshold x*: %f\n",x_median);
-
       return choice == 0 ? lower_bound : upper_bound;
-      
   }
 };
 

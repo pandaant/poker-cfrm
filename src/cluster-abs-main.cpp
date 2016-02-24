@@ -175,10 +175,8 @@ int main(int argc, char **argv) {
     centerf.close();
   }
   dump_to.close();
-  // generator->dump(options.save_to.c_str());
 
   delete handranks;
-
   return 0;
 }
 
@@ -199,8 +197,6 @@ void dump_centers(std::ofstream &stream, std::vector<histogram_c> &centers) {
       }
     }
   }
-  // dump_to->write(reinterpret_cast<const char *>(&round),
-  // sizeof(round));
 }
 
 int parse_options(int argc, char **argv) {

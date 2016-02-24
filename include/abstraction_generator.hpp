@@ -28,9 +28,7 @@ public:
   virtual void generate(nbgen &rng,
                         std::vector<histogram_c> &round_centers) = 0;
   virtual void generate_round(int round, nbgen &rng, histogram_c &center) = 0;
-  // virtual void dump(const char *dump_name) = 0;
   virtual ~AbstractionGenerator() {}
-  // virtual void dump(int round, std::vector<unsigned> buckets) = 0;
 };
 
 class EHSAbstractionGenerator : public AbstractionGenerator {
@@ -100,9 +98,8 @@ public:
 
     std::cout << "clustering " << round_size << " holdings into "
               << nb_buckets[round] << " buckets...\n";
-    // kmeans(nb_buckets[round], features, clusterrng);
 
-    unsigned restarts = 100;
+    unsigned restarts = 100; // TODO: configurable
     kmeans_center_multiple_restarts(restarts, nb_buckets[round],
                                     kmeans_center_init_random, center, features,
                                     rng);

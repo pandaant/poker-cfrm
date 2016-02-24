@@ -30,7 +30,6 @@ class InformationSetNode : public INode {
 
 public:
   std::vector<INode *> children;
-  // hand_list hands;
   uint64_t hand_idx;
   card_c board;
 

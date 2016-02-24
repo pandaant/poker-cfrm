@@ -6,8 +6,9 @@
 
 AbstractGame::AbstractGame(const Game *game_definition,
                            CardAbstraction *card_abs,
-                           ActionAbstraction *action_abs, int nb_threads )
-    : game(game_definition), card_abs(card_abs), action_abs(action_abs), nb_threads(nb_threads) {
+                           ActionAbstraction *action_abs, int nb_threads)
+    : game(game_definition), card_abs(card_abs), action_abs(action_abs),
+      nb_threads(nb_threads) {
 
   uint64_t idx = 0, idi = 0;
   State initial_state;
@@ -20,7 +21,6 @@ AbstractGame::AbstractGame(const Game *game_definition,
 }
 
 AbstractGame::~AbstractGame() {}
-
 
 INode *AbstractGame::init_game_tree(Action action, State &state,
                                     const Game *game, uint64_t &idx) {
@@ -38,15 +38,10 @@ INode *AbstractGame::init_game_tree(Action action, State &state,
   std::vector<Action> actions = action_abs->get_actions(game, state);
 
   std::vector<INode *> children(actions.size());
-  //std::cout << "pot: " << state.spent[0]+state.spent[1] << "\t nb_actions: " << actions.size() << "\n";
   for (int c = 0; c < actions.size(); ++c) {
     State new_state(state);
     doAction(game, &actions[c], &new_state);
-    //std::cout << actions[c].type << ":" << actions[c].size
-              //<< ", newpot: " << new_state.spent[0] << " + " <<  new_state.spent[1] << "=" << (new_state.spent[0] + new_state.spent[1])
-              //<< "\n";
     children[c] = init_game_tree(actions[c], new_state, game, idx);
-    //std::cout << "--\n";
   }
 
   uint64_t info_idx = idx++;
@@ -77,13 +72,14 @@ unsigned AbstractGame::find_index(card_c v1, vector<card_c> v2) {
 }
 
 INode *AbstractGame::init_public_tree(Action action, State &state,
-                                      uint64_t hands_idx, card_c board, card_c deck,
-                                      const Game *game, uint64_t &idx,
-                                      bool deal_holes, bool deal_board) {
+                                      uint64_t hands_idx, card_c board,
+                                      card_c deck, const Game *game,
+                                      uint64_t &idx, bool deal_holes,
+                                      bool deal_board) {
   // root of tree, deal holes
   if (deal_holes) {
-    PrivateChanceNode *c =
-        new PrivateChanceNode(game->numHoleCards, hands_idx, board, game, state);
+    PrivateChanceNode *c = new PrivateChanceNode(game->numHoleCards, hands_idx,
+                                                 board, game, state);
 
     // generate possible holecombinations
     std::vector<card_c> combinations =
@@ -102,21 +98,12 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
     }
 
     ++idx;
-    //std::cout << "i am a private chance node and increment index from " << idx-1 << " to " << idx << "\n";
-    if( public_tree_cache.size() - 1 < idx )
-        public_tree_cache.resize(public_tree_cache.size() + 100);
+    if (public_tree_cache.size() - 1 < idx)
+      public_tree_cache.resize(public_tree_cache.size() + 100);
     public_tree_cache[idx] = deck_to_bitset(deck);
-    //std::cout << "idx("<<idx<<") = " << public_tree_cache[idx] << "\n";
-    card_c dec = bitset_to_deck(public_tree_cache[idx],52);
-//hand_list bv = deck_to_combinations(,dec);
-//for(unsigned i = 0; i < bv.size(); ++i)
-    //std::cout << int(bv[i][0]) << "\n";
+    card_c dec = bitset_to_deck(public_tree_cache[idx], 52);
 
-    //exit(1);
-
-
-    c->child =
-        init_public_tree(action, state, idx, board, deck, game, idx);
+    c->child = init_public_tree(action, state, idx, board, deck, game, idx);
     return c;
   }
 
@@ -131,7 +118,7 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
 
     unsigned nb_active_threads = 0;
     vector<std::thread> threadpool(nb_threads);
-    vector<INode*> children(nb_combinations);
+    vector<INode *> children(nb_combinations);
 
     for (unsigned i = 0; i < nb_combinations; ++i) {
       card_c newboard(board);
@@ -142,26 +129,22 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
         newdeck.pop_back();
         newboard.push_back(card);
       }
-      // newboard.insert(newboard.begin(), combinations[i].begin(),
-      // combinations[i].end());
 
       // filter players hands based on board
-      card_c deck = bitset_to_deck(public_tree_cache[hands_idx],52);
+      card_c deck = bitset_to_deck(public_tree_cache[hands_idx], 52);
       hand_list new_holes;
-      hand_list hands = deck_to_combinations(game->numHoleCards,deck);
+      hand_list hands = deck_to_combinations(game->numHoleCards, deck);
       for (unsigned j = 0; j < hands.size(); ++j) {
         if (!do_intersect(newboard, hands[j]))
           new_holes.push_back(hands[j]);
       }
 
       ++idx;
-      //std::cout << "i am a public chance node and increment index from " << idx-1 << " to " << idx << "\n";
       if (public_tree_cache.size() - 1 < idx)
         public_tree_cache.resize(public_tree_cache.size() + 100);
       public_tree_cache[idx] = deck_to_bitset(newdeck);
-    //std::cout << "idx("<<idx<<") = " << public_tree_cache[idx] << "\n";
 
-      if( state.round == 1 ){
+      if (state.round == 1) {
         threadpool[nb_active_threads] =
             std::thread([i, action, &state, idx, newboard, newdeck, &game,
                          &children, this] {
@@ -170,10 +153,10 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
                                              newdeck, game, ix);
             });
         nb_active_threads++;
-        if (nb_active_threads >= nb_threads || i == ( nb_combinations - 1)) {
-            for(unsigned t = 0; t < nb_threads; ++t)
-                threadpool[t].join();
-            nb_active_threads = 0;
+        if (nb_active_threads >= nb_threads || i == (nb_combinations - 1)) {
+          for (unsigned t = 0; t < nb_threads; ++t)
+            threadpool[t].join();
+          nb_active_threads = 0;
         }
       } else {
         children[i] =
@@ -192,19 +175,15 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
     int money_f = state.spent[fold_player];
 
     // get all valid matchups
-    //vector<vector<vector<int>>> possible_matchups;
     card_c deck = bitset_to_deck(public_tree_cache[hands_idx], 52);
-    auto ph =deck_to_combinations(game->numHoleCards, deck); 
+    auto ph = deck_to_combinations(game->numHoleCards, deck);
 
     if (!(state.playerFolded[0] || state.playerFolded[1])) {
-      // std::cout << money << std::endl;
       return new ShowdownNode(action, money, hands_idx, board);
     } else {
-      // std::cout << money_f << std::endl;
       return new FoldNode(action, fold_player, money_f, hands_idx, board);
     }
   }
-
 
   const State *s = &state;
   InformationSetNode *game_node = (InformationSetNode *)lookup_state(
@@ -212,8 +191,9 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
   uint64_t info_idx = game_node->get_idx();
   std::vector<Action> actions = action_abs->get_actions(game, state);
   std::vector<INode *> children(actions.size());
-  InformationSetNode* n= new InformationSetNode(info_idx, action, currentPlayer(game, &state),
-                                state.round, {}, hands_idx, board);
+  InformationSetNode *n =
+      new InformationSetNode(info_idx, action, currentPlayer(game, &state),
+                             state.round, {}, hands_idx, board);
   int curr_round = state.round;
 
   for (int c = 0; c < actions.size(); ++c) {
@@ -224,16 +204,9 @@ INode *AbstractGame::init_public_tree(Action action, State &state,
         init_public_tree(actions[c], new_state, hands_idx, board, deck, game,
                          idx, false, curr_round < new_round);
   }
-  
+
   n->children = children;
-
-  //if (public_tree_cache.size() - 1 < idx)
-    //public_tree_cache.resize(public_tree_cache.size() + 100);
-  //public_tree_cache[idx] = new_hands;
-  //++idx;
-
-//std::cout << "i am a infoset for player " << int(currentPlayer(game,&state)) << " in round " << int(state.round) << " with index " << idx << " and hand_idx: " << hands_idx << "\n";
-return n;
+  return n;
 }
 
 card_c AbstractGame::generate_deck(int ranks, int suits) {
@@ -248,10 +221,8 @@ card_c AbstractGame::generate_deck(int ranks, int suits) {
   return deck;
 }
 
-hand_list AbstractGame::generate_hole_combinations(int hand_size,
-                                                       card_c deck) {
-  hand_list combinations =
-      generate_combinations(deck.size(), hand_size, {});
+hand_list AbstractGame::generate_hole_combinations(int hand_size, card_c deck) {
+  hand_list combinations = generate_combinations(deck.size(), hand_size, {});
   auto nb_combinations = combinations.size();
 
   hand_list hands(nb_combinations);
@@ -270,13 +241,14 @@ INode *AbstractGame::game_tree_root() { return game_tree; }
 INode *AbstractGame::public_tree_root() {
   if (!public_tree) {
     uint64_t idi = 0;
-    public_tree_cache = std::vector<uint64_t>(100);// better estimate initial value
+    public_tree_cache =
+        std::vector<uint64_t>(100); // better estimate initial value
     card_c deck = generate_deck(game->numRanks, game->numSuits);
     State initial_state;
     initState(game, 0, &initial_state);
-    public_tree = init_public_tree({a_invalid, 0}, initial_state, idi,
-                                   {}, deck, game, idi, true);
-     std::cout << idi << "\n";
+    public_tree = init_public_tree({a_invalid, 0}, initial_state, idi, {}, deck,
+                                   game, idi, true);
+    std::cout << idi << "\n";
   }
   return public_tree;
 }
@@ -289,7 +261,6 @@ KuhnGame::KuhnGame(const Game *game_definition, CardAbstraction *cabs,
     : AbstractGame(game_definition, cabs, aabs, nb_threads) {}
 
 void KuhnGame::evaluate(hand_t &hand) {
-  // std::cout << hand.holes[0][0] << "/" << hand.holes[1][0] << "\n";
   hand.value[0] =
       rankOfCard(hand.holes[0][0]) > rankOfCard(hand.holes[1][0]) ? 1 : -1;
   hand.value[1] = hand.value[0] * -1;
@@ -298,7 +269,7 @@ void KuhnGame::evaluate(hand_t &hand) {
 // LEDUC
 LeducGame::LeducGame(const Game *game_definition, CardAbstraction *cabs,
                      ActionAbstraction *aabs, int nb_threads)
-    : AbstractGame(game_definition, cabs, aabs,nb_threads) {}
+    : AbstractGame(game_definition, cabs, aabs, nb_threads) {}
 
 void LeducGame::evaluate(hand_t &hand) {
   int p1r = rank_hand(hand.holes[0][0], hand.board[0]);
@@ -326,7 +297,8 @@ int LeducGame::rank_hand(int hand, int board) {
 }
 
 HoldemGame::HoldemGame(const Game *game_definition, CardAbstraction *cabs,
-                       ActionAbstraction *aabs, ecalc::Handranks* hr, int nb_threads )
+                       ActionAbstraction *aabs, ecalc::Handranks *hr,
+                       int nb_threads)
     : AbstractGame(game_definition, cabs, aabs, nb_threads), handranks(hr) {}
 
 void HoldemGame::evaluate(hand_t &hand) {

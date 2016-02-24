@@ -55,6 +55,24 @@ If the build process was successful 4 binaries have been created:
 
 ### Card Abstraction
 
-* NullCardAbstraction
-* BlindCardAbstraction
-* ClusterCardAbstraction
+#### NullCardAbstraction
+#### BlindCardAbstraction
+#### ClusterCardAbstraction
+* SI
+* EHS
+* EMD
+* OCHS
+* MIXED_NEEO
+* MIXED_NEES
+* MIXED_NSSS
+* MIXED_NOOO
+
+### Sampling Scheme
+
+* ChanceSampling
+* ExternalSampling
+* OutcomeSampling
+
+### Action Translation 
+
+* PseudoHarmonicMapping

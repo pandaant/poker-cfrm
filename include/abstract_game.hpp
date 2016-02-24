@@ -66,7 +66,6 @@ public:
     INode *child = NULL;
     int first_raise_idx = -1;
 
-    // std::cout << "evaluation raises for " << path << "\n";
     for (unsigned i = 0; i < node->get_children().size(); ++i) {
       Action caction = node->get_children()[i]->get_action();
       if (caction.type == action.type && caction.type != a_raise)
@@ -78,11 +77,9 @@ public:
 
     // raise actions
     if (child == NULL) {
-      //std::cout << "raise raise to map: " << action.size << "\n";
       std::vector<double> sizes(node->get_children().size() - first_raise_idx);
       for (unsigned i = first_raise_idx; i < node->get_children().size(); ++i) {
         sizes[i - first_raise_idx] = node->get_children()[i]->get_action().size;
-        //std::cout << "raise: " << sizes[i - first_raise_idx] << "\n";
       }
 
       unsigned lower_bound, upper_bound;
@@ -90,10 +87,9 @@ public:
       int abstract_size = mapper.map_rand(sizes, action.size);
       unsigned unused_bound =
           abstract_size == lower_bound ? upper_bound : lower_bound;
-      //std::cout << "abs size: " << abstract_size << "\n";
       child = node->get_children()[first_raise_idx + abstract_size];
 
-      // check if tree can be traversed in that node. if no, take the unused
+      // check if tree can be traversed in that node. if not, take the unused
       // bound even when its worse.
       INode *res = lookup_state(state, player, child, round, curr_action + 1,
                                 path + ActionsStr[action.type] +
@@ -107,7 +103,6 @@ public:
         return lookup_state(state, player, child, round, curr_action + 1,
                             path + ActionsStr[action.type] +
                                 std::to_string(action.size));
-
       } else {
         return res;
       }

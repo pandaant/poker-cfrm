@@ -69,8 +69,6 @@ ActionAbstraction *load_action_abstraction(const Game *gamedef,
     }
 
     std::vector<double> fractions = str_to_dbl_list(param, ',');
-    // for(unsigned i = 0; i < fractions.size(); ++i)
-    // std::cout << fractions[i] << "\n";
     return new PotRelationActionAbstraction(gamedef, fractions);
     break;
   };
